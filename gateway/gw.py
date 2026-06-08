@@ -221,7 +221,7 @@ def build_config():
             "strategy": "ipv4_only"
         },
         "experimental": {"clash_api": {
-            "external_controller": f"127.0.0.1:{net['clash_port']}",
+            "external_controller": f"0.0.0.0:{net['clash_port']}",
             "external_ui": SINGBOX_UI, "secret": "hijinet"
         }},
         "endpoints": [{
@@ -315,6 +315,33 @@ def build_config():
 
 def apply_config(restart=True):
     cfg = build_config()
+
+    # Preserve dynamic proxy pool managed by proxy-collector.
+    # build_config() is only the base gateway config; do not wipe free-* / PROXY-*.
+    if os.path.exists(SINGBOX_CFG):
+        try:
+            with open(SINGBOX_CFG) as f:
+                old = json.load(f)
+            dynamic = []
+            custom_selectors = []
+            for o in old.get("outbounds", []):
+                tag = o.get("tag", "")
+                if tag.startswith("free-") or tag.startswith("PROXY-"):
+                    dynamic.append(o)
+                elif o.get("type") == "selector" and tag not in {"GLOBAL", "GOOGLE", "OPENAI", "IPCHECK"}:
+                    custom_selectors.append(o)
+            if dynamic:
+                existing_tags = {o.get("tag") for o in cfg.get("outbounds", [])}
+                cfg["outbounds"].extend(o for o in dynamic if o.get("tag") not in existing_tags)
+                groups = sorted(o["tag"] for o in dynamic if o.get("tag", "").startswith("PROXY-"))
+                for o in cfg.get("outbounds", []):
+                    if o.get("type") == "selector" and o.get("tag") in {"GLOBAL", "GOOGLE", "OPENAI", "IPCHECK"}:
+                        base = [x for x in o.get("outbounds", []) if not x.startswith("PROXY-")]
+                        o["outbounds"] = base + groups
+                cfg["outbounds"].extend(custom_selectors)
+        except Exception as e:
+            print(f"  \033[33m!\033[0m Preserve dynamic proxies skipped: {e}")
+
     os.makedirs(os.path.dirname(SINGBOX_CFG), exist_ok=True)
     with open(SINGBOX_CFG, "w") as f:
         json.dump(cfg, f, indent=2)

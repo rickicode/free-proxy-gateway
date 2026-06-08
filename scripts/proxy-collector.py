@@ -21,8 +21,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 CONFIG        = "/etc/sing-box/config.json"
 SINGBOX       = "/usr/local/bin/sing-box"
 GITHUB_RAW    = "https://raw.githubusercontent.com/rickicode/free-proxy-singbox/main/output/live-proxies.json"
+GW_CFG        = "/opt/gateway-config.json"
 STATE_FILE    = "/opt/.proxy-collector-state.json"   # track last update timestamp
 LOG_FILE      = "/opt/proxy-collector-last-run.json"  # public-readable last run info
+CLASH_SECRET  = "hijinet"
 
 KEEP_MS       = 500       # keep existing proxy if clash delay < this
 MAX_FREE      = 40        # max outbounds in PROXY-FREE
@@ -93,12 +95,35 @@ def save_state(generated_at, free_obs, cc_groups):
         json.dump(log, f, indent=2)
 
 # ── 1. Fetch from GitHub ────────────────────────────────────────────────────
+def load_wan_if():
+    """Best-effort WAN interface for direct GitHub fetches."""
+    try:
+        with open(GW_CFG) as f:
+            return json.load(f).get("wan_if") or "eth0"
+    except:
+        return "eth0"
+
+
+def fetch_json_direct(url):
+    """Fetch JSON through WAN directly so host TUN routing can't trap GitHub."""
+    wan_if = load_wan_if()
+    attempts = [
+        ["curl", "-fsSL", "--interface", wan_if, "--max-time", "30", url],
+        ["curl", "-fsSL", "--max-time", "30", url],
+    ]
+    for cmd in attempts:
+        r = run(cmd)
+        if r.returncode == 0 and r.stdout.strip():
+            return json.loads(r.stdout)
+    req = urllib.request.Request(url, headers={"User-Agent": "curl/8.0"})
+    return json.loads(urllib.request.urlopen(req, timeout=30).read())
+
+
 def fetch_github_proxies():
     """Fetch live-proxies.json — all proxies already TCP + live + GeoIP verified.
     Returns (proxies, generated_at) or ([], "") on failure."""
     try:
-        req = urllib.request.Request(GITHUB_RAW, headers={"User-Agent": "curl/8.0"})
-        data = json.loads(urllib.request.urlopen(req, timeout=30).read())
+        data = fetch_json_direct(GITHUB_RAW)
         proxies = data.get("proxies", [])
         generated_at = data.get("generated_at", "")
         print(f"\n[fetch] GitHub: {len(proxies)} proxies ({generated_at})")
@@ -114,7 +139,8 @@ def clash_delay(tag, timeout_ms=3000):
     """Quick delay check via local clash API — lightweight, no sing-box restart."""
     try:
         url = f"http://127.0.0.1:9090/proxies/{urllib.parse.quote(tag)}/delay?timeout={timeout_ms}&url=http://cp.cloudflare.com/generate_204"
-        r = json.loads(urllib.request.urlopen(url, timeout=5).read())
+        req = urllib.request.Request(url, headers={"Authorization": f"Bearer {CLASH_SECRET}"})
+        r = json.loads(urllib.request.urlopen(req, timeout=5).read())
         return r.get("delay", 9999)
     except:
         return 9999
