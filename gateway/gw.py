@@ -22,6 +22,7 @@ LOG_FILE      = "/var/log/sing-box.log"
 SINGBOX_VER   = "1.13.13"
 
 META_BASE   = "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite"
+MANAGED_SELECTORS = {"GLOBAL", "GOOGLE", "OPENAI", "IPCHECK", "PORT-1010", "PORT-1011", "PORT-1012"}
 
 # WARP credentials — jangan hardcode! Di-load dari /opt/warp-creds.json
 # (dibikin otomatis oleh warp-refresh.py saat install)
@@ -254,6 +255,12 @@ def build_config():
              "listen": "0.0.0.0", "listen_port": net["tproxy_port"], "network": "udp"},
             {"type": "mixed", "tag": "mixed-in",
              "listen": "0.0.0.0", "listen_port": net["mixed_port"]},
+            {"type": "mixed", "tag": "mixed-1010",
+             "listen": "0.0.0.0", "listen_port": 1010},
+            {"type": "mixed", "tag": "mixed-1011",
+             "listen": "0.0.0.0", "listen_port": 1011},
+            {"type": "mixed", "tag": "mixed-1012",
+             "listen": "0.0.0.0", "listen_port": 1012},
         ],
         "outbounds": [
             {"type": "direct", "tag": "DIRECT"},
@@ -273,6 +280,12 @@ def build_config():
              "outbounds": base_choices, "default": "WARP"},
             {"type": "selector", "tag": "IPCHECK",
              "outbounds": base_choices, "default": "WARP"},
+            {"type": "selector", "tag": "PORT-1010",
+             "outbounds": base_choices, "default": "DIRECT"},
+            {"type": "selector", "tag": "PORT-1011",
+             "outbounds": base_choices, "default": "DIRECT"},
+            {"type": "selector", "tag": "PORT-1012",
+             "outbounds": base_choices, "default": "DIRECT"},
         ],
         "route": {
             "auto_detect_interface": True,
@@ -302,6 +315,9 @@ def build_config():
                 {"action": "sniff"},
                 {"protocol": "dns", "action": "hijack-dns"},
                 {"ip_is_private": True, "outbound": "DIRECT"},
+                {"inbound": ["mixed-1010"], "outbound": "PORT-1010"},
+                {"inbound": ["mixed-1011"], "outbound": "PORT-1011"},
+                {"inbound": ["mixed-1012"], "outbound": "PORT-1012"},
                 *[{"domain": [r["host"]], "outbound": r["outbound"]} for r in managed],
                 {"rule_set": ["community-openai", "community-anthropic"], "outbound": "OPENAI"},
                 {"rule_set": ["community-google", "community-google-play",
@@ -328,14 +344,14 @@ def apply_config(restart=True):
                 tag = o.get("tag", "")
                 if tag.startswith("free-") or tag.startswith("PROXY-"):
                     dynamic.append(o)
-                elif o.get("type") == "selector" and tag not in {"GLOBAL", "GOOGLE", "OPENAI", "IPCHECK"}:
+                elif o.get("type") == "selector" and tag not in MANAGED_SELECTORS:
                     custom_selectors.append(o)
             if dynamic:
                 existing_tags = {o.get("tag") for o in cfg.get("outbounds", [])}
                 cfg["outbounds"].extend(o for o in dynamic if o.get("tag") not in existing_tags)
                 groups = sorted(o["tag"] for o in dynamic if o.get("tag", "").startswith("PROXY-"))
                 for o in cfg.get("outbounds", []):
-                    if o.get("type") == "selector" and o.get("tag") in {"GLOBAL", "GOOGLE", "OPENAI", "IPCHECK"}:
+                    if o.get("type") == "selector" and o.get("tag") in MANAGED_SELECTORS:
                         base = [x for x in o.get("outbounds", []) if not x.startswith("PROXY-")]
                         o["outbounds"] = base + groups
                 cfg["outbounds"].extend(custom_selectors)

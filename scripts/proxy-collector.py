@@ -309,7 +309,7 @@ def update_config(config, free_obs):
             })
 
     # ── Rebuild managed selectors, preserve custom ones ───────────────────
-    managed_tags = {"GLOBAL", "GOOGLE", "OPENAI", "IPCHECK"}
+    managed_tags = {"GLOBAL", "GOOGLE", "OPENAI", "IPCHECK", "PORT-1010", "PORT-1011", "PORT-1012"}
     old_selectors = {}
     preserved = []
     for o in config["outbounds"]:
