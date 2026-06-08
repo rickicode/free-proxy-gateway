@@ -15,6 +15,7 @@ Flow:
 """
 import json, subprocess, time, urllib.request, os, sys, urllib.parse, random
 from collections import OrderedDict, Counter
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # ── Config ──────────────────────────────────────────────────────────────────
 CONFIG        = "/etc/sing-box/config.json"
@@ -126,13 +127,19 @@ def keep_existing(config):
 
     print(f"\n── Keep-alive: {len(existing)} existing ──")
     kept = []
-    for ob in existing:
-        delay = clash_delay(ob["tag"])
-        if delay < KEEP_MS:
-            kept.append(ob)
-            ok(f"{ob['tag']:35} {delay}ms")
-        else:
-            fail(f"{ob['tag']:35} {delay}ms")
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        futures = {pool.submit(clash_delay, ob["tag"]): ob for ob in existing}
+        for future in as_completed(futures):
+            ob = futures[future]
+            try:
+                delay = future.result(timeout=5)
+            except:
+                delay = 9999
+            if delay < KEEP_MS:
+                kept.append(ob)
+                ok(f"{ob['tag']:35} {delay}ms")
+            else:
+                fail(f"{ob['tag']:35} {delay}ms")
 
     kept_servers = {(o["server"], o["server_port"]) for o in kept}
     # Extract country code from kept tags (free-US-1 → US)
@@ -275,29 +282,44 @@ def update_config(config, free_obs):
                 "default": tags[0],
             })
 
-    # ── Rebuild selectors from scratch ────────────────────────────────────
-    # Save existing selectors (keep tag + default)
-    old_selectors = {o["tag"]: o for o in config["outbounds"] if o["type"] == "selector"}
-    # Remove all selectors from config
-    config["outbounds"] = [o for o in config["outbounds"] if o["type"] != "selector"]
+    # ── Rebuild managed selectors, preserve custom ones ───────────────────
+    managed_tags = {"GLOBAL", "GOOGLE", "OPENAI", "IPCHECK"}
+    old_selectors = {}
+    preserved = []
+    for o in config["outbounds"]:
+        if o["type"] == "selector":
+            if o["tag"] in managed_tags:
+                old_selectors[o["tag"]] = o
+            elif not o["tag"].startswith("PROXY-"):
+                preserved.append(o)
+    # Only remove managed selectors
+    config["outbounds"] = [
+        o for o in config["outbounds"]
+        if not (o["type"] == "selector" and o["tag"] in managed_tags)
+    ]
 
-    # Collect all current PROXY-* group tags
+    # Collect current PROXY-* group tags (stable order)
     built_groups = sorted(
         o["tag"] for o in config["outbounds"] if o["tag"].startswith("PROXY-")
     )
 
-    # Rebuild each selector: base choices (non-PROXY) + current PROXY- groups
-    for tag in ["GLOBAL", "GOOGLE", "OPENAI", "IPCHECK"]:
+    # Rebuild managed selectors with stable PROXY- order
+    for tag in sorted(managed_tags):
         old = old_selectors.get(tag)
         if not old:
             continue
         base = [c for c in old["outbounds"] if not c.startswith("PROXY-")]
+        # DIR, WARP*, PROXY-FREE first, then per-country sorted
+        proxy_groups = sorted(g for g in built_groups if g != tag)
         config["outbounds"].append({
             "type": "selector",
             "tag": tag,
-            "outbounds": base + [g for g in built_groups if g != tag],
+            "outbounds": base + proxy_groups,
             "default": old.get("default", "DIRECT"),
         })
+
+    # Append custom selectors back
+    config["outbounds"].extend(preserved)
 
 # ── Main ─────────────────────────────────────────────────────────────────────
 def main():

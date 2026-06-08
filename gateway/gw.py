@@ -23,14 +23,33 @@ SINGBOX_VER   = "1.13.13"
 
 META_BASE   = "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite"
 
-# WARP credentials
-W1_PRIVKEY = "qEqVXpiY9Te8mbmw02wVl7wa/gg0qqc2UoUbjuKC6VE="
-W1_ADDR4   = "172.16.0.2/32"
-W1_ADDR6   = "2606:4700:110:8091:88d4:9c22:b64d:65a1/128"
-W2_PRIVKEY = "+KauKf1ZD8XsgClXa1e4I0+136kupoPKc/2+jZUZQmg="
-W2_ADDR4   = "172.16.0.2/32"
-W2_ADDR6   = "2606:4700:110:867b:6df0:9ec1:84dd:481f/128"
+# WARP credentials — jangan hardcode! Di-load dari /opt/warp-creds.json
+# (dibikin otomatis oleh warp-refresh.py saat install)
 WARP_PUBKEY = "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo="
+WARP_CREDS  = "/opt/warp-creds.json"
+
+
+def load_warp_creds():
+    """Load WARP credentials dari warp-creds.json. Fallback placeholder."""
+    fallback = {
+        "WARP1": {"private_key": "", "address_v4": "172.16.0.2/32", "address_v6": "2606:4700:110::/128"},
+        "WARP2": {"private_key": "", "address_v4": "172.16.0.3/32", "address_v6": "2606:4700:110::1/128"},
+    }
+    if os.path.exists(WARP_CREDS):
+        try:
+            with open(WARP_CREDS) as f:
+                data = json.load(f)
+            return {
+                k: {
+                    "private_key": data.get(k, {}).get("private_key", ""),
+                    "address_v4": data.get(k, {}).get("address_v4", fallback[k]["address_v4"]),
+                    "address_v6": data.get(k, {}).get("address_v6", fallback[k]["address_v6"]),
+                }
+                for k in ["WARP1", "WARP2"]
+            }
+        except:
+            pass
+    return fallback
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -179,11 +198,20 @@ def save_storage(rules):
 def build_config():
     """Build base sing-box config. Preserves dynamic outbounds (PROXY-*)."""
     net = load_net_config()
+    creds = load_warp_creds()
+    # Auto-generate WARP keys jika creds belum ada (install fresh)
+    for k in ["WARP1", "WARP2"]:
+        if not creds[k]["private_key"]:
+            try:
+                priv = subprocess.run(["wg", "genkey"], capture_output=True, text=True).stdout.strip()
+                if priv:
+                    creds[k]["private_key"] = priv
+            except:
+                pass
     managed = load_storage()
 
-    # Dynamic outbounds (bf-*, PROXY-*) dikelola oleh trojan-updater
-    # dan proxy-collector — jangan di-preserve di base config.
-    # Nanti ditambah otomatis pas proxy-collector jalan.
+    # Dynamic outbounds (PROXY-*, free-*) dikelola oleh proxy-collector.
+    # Jangan di-preserve di base config — nanti ditambah otomatis.
     base_choices = ["DIRECT", "WARP", "WARP1", "WARP2"]
 
     return {
@@ -193,14 +221,14 @@ def build_config():
             "strategy": "ipv4_only"
         },
         "experimental": {"clash_api": {
-            "external_controller": f"0.0.0.0:{net['clash_port']}",
-            "external_ui": SINGBOX_UI, "secret": ""
+            "external_controller": f"127.0.0.1:{net['clash_port']}",
+            "external_ui": SINGBOX_UI, "secret": "hijinet"
         }},
         "endpoints": [{
             "type": "wireguard", "tag": "warp-ep", "system": True,
             "name": "singtun0", "mtu": 1280,
-            "address": [W1_ADDR4, W1_ADDR6],
-            "private_key": W1_PRIVKEY,
+            "address": [creds["WARP1"]["address_v4"], creds["WARP1"]["address_v6"]],
+            "private_key": creds["WARP1"]["private_key"],
             "peers": [{"address": "engage.cloudflareclient.com", "port": 2408,
                        "public_key": WARP_PUBKEY,
                        "allowed_ips": ["0.0.0.0/0", "::/0"],
@@ -208,8 +236,8 @@ def build_config():
         }, {
             "type": "wireguard", "tag": "warp2-ep", "system": True,
             "name": "singtun1", "mtu": 1280,
-            "address": [W2_ADDR4, W2_ADDR6],
-            "private_key": W2_PRIVKEY,
+            "address": [creds["WARP2"]["address_v4"], creds["WARP2"]["address_v6"]],
+            "private_key": creds["WARP2"]["private_key"],
             "peers": [{"address": "engage.cloudflareclient.com", "port": 2408,
                        "public_key": WARP_PUBKEY,
                        "allowed_ips": ["0.0.0.0/0", "::/0"],
@@ -379,6 +407,10 @@ def cmd_install():
     run("touch /var/log/sing-box.log && chown singbox:singbox /var/log/sing-box.log")
     ok("Dirs & user ready")
 
+    # ── Tools: wireguard + wgcf ────────────────────────────────────────────
+    run(["apt-get", "install", "-y", "-qq", "wireguard-tools"])
+    ok("wireguard-tools installed")
+
     # ── YACD UI ──────────────────────────────────────────────────────────
     if not os.path.exists(os.path.join(SINGBOX_UI, "index.html")):
         info("Downloading YACD UI...")
@@ -417,6 +449,8 @@ iptables -t mangle -A SING_BOX -d 127.0.0.0/8 -j RETURN
 iptables -t mangle -A SING_BOX -d 192.168.0.0/16 -j RETURN
 iptables -t mangle -A SING_BOX -d 10.0.0.0/8 -j RETURN
 iptables -t mangle -A SING_BOX -d 172.16.0.0/12 -j RETURN
+iptables -t mangle -A SING_BOX -d 100.64.0.0/10 -j RETURN
+iptables -t mangle -A SING_BOX -d {net['lan_subnet']} -j RETURN
 iptables -t mangle -A SING_BOX -p tcp -j TPROXY --tproxy-mark $TPROXY_MARK --on-port $TPROXY_PORT
 iptables -t mangle -A SING_BOX -p udp -j TPROXY --tproxy-mark $TPROXY_MARK --on-port $TPROXY_PORT
 iptables -t mangle -A PREROUTING -i $LAN_IF -j SING_BOX
@@ -525,6 +559,11 @@ WantedBy=multi-user.target
             err(f"Download warp-refresh.py failed: {e}")
     else:
         ok("warp-refresh.py already exists")
+
+    # Initial warp refresh — generate WARP creds
+    info("Generating initial WARP credentials...")
+    run(["python3", warp_py, "--force"], check=False)
+    ok("WARP credentials generated")
 
     # Set up cron
     cron_job = "0 */5 * * * /usr/bin/python3 /opt/proxy-collector.py >> /var/log/proxy-collector.log 2>&1"
@@ -700,8 +739,8 @@ def cmd_update_proxies():
         err("proxy-collector.py not found")
 
 
-COLLECTOR_STATE = "/opt/.proxy-collector-state.json"
-GITHUB_SUMMARY  = "https://raw.githubusercontent.com/rickicode/free-proxy-singbox/main/output/latest-summary.json"
+COLLECTOR_STATE  = "/opt/.proxy-collector-state.json"
+COLLECTOR_LOG    = "/opt/proxy-collector-last-run.json"
 
 
 def cmd_collector_status():
@@ -714,20 +753,25 @@ def cmd_collector_status():
     last_gen = state.get("last_generated_at", "-")
     print(f"  Last run    : {last_run}")
     print(f"  Last scan   : {last_gen}")
-    try:
-        req = urllib.request.Request(GITHUB_SUMMARY, headers={"User-Agent": "curl/8.0"})
-        remote = json.loads(urllib.request.urlopen(req, timeout=10).read())
-        r_gen = remote.get("generated_at", "")
-        r_cand = remote.get("candidate_count", "?")
-        r_live = remote.get("live_count", "?")
+
+    # Baca dari local log — no need hit GitHub
+    log = {}
+    if os.path.exists(COLLECTOR_LOG):
+        with open(COLLECTOR_LOG) as f:
+            log = json.load(f)
+    if log:
+        r_gen = log.get("github_scan_at", "")
+        r_live = log.get("total_proxies", "?")
+        countries = log.get("countries", {})
         print(f"  Remote scan : {r_gen}")
-        print(f"  Remote data : {r_cand} candidates, {r_live} live proxies")
+        print(f"  Remote data : {r_live} live proxies across {len(countries)} countries")
+        if countries:
+            cc_list = ", ".join(f"{v['flag']} {k}({v['count']})" for k, v in sorted(countries.items()))
+            print(f"  Countries   : {cc_list}")
         if last_gen == r_gen:
             print(f"  \033[32m✓\033[0m Fresh\n")
         else:
             print(f"  \033[33m!\033[0m Stale — run `gw update-proxies`\n")
-    except Exception as e:
-        print(f"  \033[31m✗\033[0m GitHub unreachable: {e}\n")
 
 
 def cmd_net_config():

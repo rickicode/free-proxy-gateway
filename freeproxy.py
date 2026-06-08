@@ -5,6 +5,7 @@ import json
 import os
 import random
 import re
+import ipaddress
 import socket
 import subprocess
 import tempfile
@@ -407,13 +408,11 @@ def build_temp_config(outbound, listen_port):
 
 
 def _is_valid_ip(text):
-    """Validate that text is a proper IPv4 address (0-255 per octet, no leading zeros)."""
-    parts = text.split(".")
-    return (
-        len(parts) == 4
-        and all(p.isdigit() and 0 <= int(p) <= 255 for p in parts)
-        and not any(len(p) > 1 and p[0] == "0" for p in parts)
-    )
+    """Validate text is a global (non-private, non-reserved) IPv4 address."""
+    try:
+        return bool(ipaddress.ip_address(text.strip()).is_global)
+    except ValueError:
+        return False
 
 
 def _wait_for_port(host, port, timeout=5):
@@ -449,6 +448,7 @@ def live_test(binary_path, candidate, listen_port, live_timeout, ip_check_urls):
             [str(binary_path), "run", "-c", temp_config],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
+            start_new_session=True,
         )
         if not _wait_for_port("127.0.0.1", listen_port, timeout=5):
             return None
