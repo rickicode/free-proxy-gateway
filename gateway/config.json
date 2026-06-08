@@ -1,0 +1,131 @@
+{
+  "log": {
+    "level": "info",
+    "output": "/var/log/sing-box.log",
+    "timestamp": true
+  },
+  "dns": {
+    "servers": [
+      { "type": "udp", "tag": "local", "server": "1.1.1.1" }
+    ],
+    "strategy": "ipv4_only"
+  },
+  "experimental": {
+    "clash_api": {
+      "external_controller": "0.0.0.0:9090",
+      "external_ui": "/etc/sing-box/ui",
+      "secret": ""
+    }
+  },
+  "endpoints": [
+    {
+      "type": "wireguard",
+      "tag": "warp-ep",
+      "system": true,
+      "name": "singtun0",
+      "mtu": 1280,
+      "address": [
+        "172.16.0.2/32",
+        "2606:4700:110:8091:88d4:9c22:b64d:65a1/128"
+      ],
+      "private_key": "qEqVXpiY9Te8mbmw02wVl7wa/gg0qqc2UoUbjuKC6VE=",
+      "peers": [
+        {
+          "address": "engage.cloudflareclient.com",
+          "port": 2408,
+          "public_key": "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=",
+          "allowed_ips": ["0.0.0.0/0", "::/0"],
+          "persistent_keepalive_interval": 25
+        }
+      ]
+    },
+    {
+      "type": "wireguard",
+      "tag": "warp2-ep",
+      "system": true,
+      "name": "singtun1",
+      "mtu": 1280,
+      "address": [
+        "172.16.0.2/32",
+        "2606:4700:110:867b:6df0:9ec1:84dd:481f/128"
+      ],
+      "private_key": "+KauKf1ZD8XsgClXa1e4I0+136kupoPKc/2+jZUZQmg=",
+      "peers": [
+        {
+          "address": "engage.cloudflareclient.com",
+          "port": 2408,
+          "public_key": "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=",
+          "allowed_ips": ["0.0.0.0/0", "::/0"],
+          "persistent_keepalive_interval": 25
+        }
+      ]
+    }
+  ],
+  "inbounds": [
+    { "type": "tun", "tag": "tun-in", "address": ["172.19.0.1/30"],
+      "auto_route": true, "strict_route": true, "stack": "system",
+      "exclude_interface": ["singtun0", "singtun1", "ens19"] },
+    { "type": "tproxy", "tag": "tproxy-in", "listen": "0.0.0.0",
+      "listen_port": 7893, "network": "tcp" },
+    { "type": "tproxy", "tag": "tproxy-udp-in", "listen": "0.0.0.0",
+      "listen_port": 7893, "network": "udp" },
+    { "type": "mixed", "tag": "mixed-in", "listen": "0.0.0.0",
+      "listen_port": 7890 }
+  ],
+  "outbounds": [
+    { "type": "direct", "tag": "DIRECT" },
+    { "type": "block", "tag": "BLOCK" },
+    { "type": "direct", "tag": "WARP1", "bind_interface": "singtun0" },
+    { "type": "direct", "tag": "WARP2", "bind_interface": "singtun1" },
+    { "type": "urltest", "tag": "WARP",
+      "outbounds": ["WARP1", "WARP2"],
+      "url": "http://cp.cloudflare.com/generate_204",
+      "interval": "3m", "tolerance": 50 },
+    { "type": "selector", "tag": "GLOBAL",
+      "outbounds": ["DIRECT", "WARP", "WARP1", "WARP2"],
+      "default": "DIRECT" },
+    { "type": "selector", "tag": "GOOGLE",
+      "outbounds": ["WARP", "WARP1", "WARP2", "DIRECT"],
+      "default": "DIRECT" },
+    { "type": "selector", "tag": "OPENAI",
+      "outbounds": ["WARP", "WARP1", "WARP2", "DIRECT"],
+      "default": "WARP" },
+    { "type": "selector", "tag": "IPCHECK",
+      "outbounds": ["WARP", "WARP1", "WARP2", "DIRECT"],
+      "default": "WARP" }
+  ],
+  "route": {
+    "auto_detect_interface": true,
+    "rule_set": [
+      { "type": "remote", "tag": "community-speedtest", "format": "binary",
+        "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/speedtest.srs",
+        "download_detour": "DIRECT", "update_interval": "24h" },
+      { "type": "local", "tag": "local-ip-check", "format": "binary",
+        "path": "/opt/rules/compiled/ip-check.srs" },
+      { "type": "remote", "tag": "community-openai", "format": "binary",
+        "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/openai.srs",
+        "download_detour": "DIRECT", "update_interval": "24h" },
+      { "type": "remote", "tag": "community-anthropic", "format": "binary",
+        "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/anthropic.srs",
+        "download_detour": "DIRECT", "update_interval": "24h" },
+      { "type": "remote", "tag": "community-google", "format": "binary",
+        "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/google.srs",
+        "download_detour": "DIRECT", "update_interval": "24h" },
+      { "type": "remote", "tag": "community-google-play", "format": "binary",
+        "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/google-play.srs",
+        "download_detour": "DIRECT", "update_interval": "24h" },
+      { "type": "remote", "tag": "community-youtube", "format": "binary",
+        "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/youtube.srs",
+        "download_detour": "DIRECT", "update_interval": "24h" }
+    ],
+    "rules": [
+      { "action": "sniff" },
+      { "protocol": "dns", "action": "hijack-dns" },
+      { "ip_is_private": true, "outbound": "DIRECT" },
+      { "rule_set": ["community-openai", "community-anthropic"], "outbound": "OPENAI" },
+      { "rule_set": ["community-google", "community-google-play", "community-youtube"], "outbound": "GOOGLE" },
+      { "rule_set": ["community-speedtest", "local-ip-check"], "outbound": "IPCHECK" }
+    ],
+    "final": "GLOBAL"
+  }
+}

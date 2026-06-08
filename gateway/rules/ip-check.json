@@ -1,0 +1,28 @@
+{
+  "version": 2,
+  "rules": [
+    {
+      "domain": [
+        "ifconfig.co",
+        "ifconfig.me",
+        "icanhazip.com",
+        "wtfismyip.com",
+        "checkip.amazonaws.com"
+      ],
+      "domain_suffix": [
+        "ipinfo.io",
+        "ip-api.com",
+        "ipify.org",
+        "ipwho.is",
+        "browserleaks.com",
+        "dnsleaktest.com",
+        "ipleak.net",
+        "whoer.net",
+        "whatismyipaddress.com",
+        "api.ipify.org",
+        "api.ip.sb",
+        "ipapi.co"
+      ]
+    }
+  ]
+}
