@@ -62,7 +62,7 @@ def load_net_config():
     Returns dict dengan default fallback jika file tidak ada."""
     defaults = {
         "wan_if": "eth0",
-        "lan_if": "ens19",
+        "lan_if": "eth1",
         "lan_subnet": "192.168.92.0/24",
         "lan_ip": "192.168.92.1/24",
         "tproxy_port": 7893,
@@ -117,7 +117,7 @@ def detect_network():
         print(f"  LAN candidate(s): {', '.join(lan_candidates)}")
         default_lan = lan_candidates[0]
     else:
-        default_lan = "ens19"
+        default_lan = "eth1"
         print(f"  No LAN interface detected with private IP.")
     net["lan_if"] = ask(f"LAN interface", default_lan)
 
@@ -281,11 +281,11 @@ def build_config():
             {"type": "selector", "tag": "IPCHECK",
              "outbounds": base_choices, "default": "WARP"},
             {"type": "selector", "tag": "PORT-1010",
-             "outbounds": base_choices, "default": "DIRECT"},
+             "outbounds": base_choices, "default": "WARP"},
             {"type": "selector", "tag": "PORT-1011",
-             "outbounds": base_choices, "default": "DIRECT"},
+             "outbounds": base_choices, "default": "WARP2"},
             {"type": "selector", "tag": "PORT-1012",
-             "outbounds": base_choices, "default": "DIRECT"},
+             "outbounds": base_choices, "default": "WARP1"},
         ],
         "route": {
             "auto_detect_interface": True,

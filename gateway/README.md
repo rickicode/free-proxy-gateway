@@ -33,7 +33,7 @@ Installer akan:
 ```
 LAN (192.168.92.0/24)
   │
-  ├── ens19 (192.168.92.1)
+  ├── eth1 (192.168.92.1)
   │     └── TProxy :7893 (tcp + udp)
   │           └── sing-box routing
   │                 ├── DIRECT  → eth0 (ISP langsung)
