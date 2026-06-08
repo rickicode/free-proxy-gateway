@@ -6,6 +6,28 @@
 
 ---
 
+## Quick Install (VPS Baru)
+
+Cukup 2 baris di VPS fresh:
+
+```bash
+apt-get update && apt-get install -y python3 curl iptables iptables-persistent
+curl -L -o /opt/gw.py "https://raw.githubusercontent.com/rickicode/free-proxy-singbox/main/gateway/gw.py"
+python3 /opt/gw.py install
+```
+
+Installer akan:
+1. Auto-detect WAN (default route) + LAN interface
+2. Prompt konfirmasi WAN/LAN/subnet/IP LAN
+3. Set IP LAN + IP forwarding + NAT MASQUERADE
+4. Download sing-box + YACD UI + proxy-collector
+5. Setup systemd service + TProxy iptables
+6. Compile rule sets + apply config
+7. Setup cron proxy-collector (tiap 5 jam)
+8. Initial proxy collection (40+ proxy langsung aktif)
+
+**Tidak perlu clone repo.** Semua download dari GitHub raw URL.
+
 ## Arsitektur
 
 ```
@@ -100,12 +122,12 @@ LAN (192.168.92.0/24)
 
 ## Selectors (pilih manual via YACD)
 
-| Selector | Default | Pilihan |
-|----------|---------|---------|
+| Selector | Default | Priority Outbounds |
+|----------|---------|-------------------|
 | `GLOBAL` | DIRECT | DIRECT, WARP, WARP1, WARP2, PROXY-*, PROXY-FREE |
-| `GOOGLE` | DIRECT | WARP, WARP1, WARP2, DIRECT, PROXY-* |
-| `OPENAI` | WARP | WARP, WARP1, WARP2, DIRECT, PROXY-* |
-| `IPCHECK` | WARP | WARP, WARP1, WARP2, DIRECT, PROXY-* |
+| `GOOGLE` | DIRECT | DIRECT, WARP, WARP1, WARP2, PROXY-* |
+| `OPENAI` | WARP | DIRECT, WARP, WARP1, WARP2, PROXY-* |
+| `IPCHECK` | WARP | DIRECT, WARP, WARP1, WARP2, PROXY-* |
 
 ## Route Rules (urutan)
 

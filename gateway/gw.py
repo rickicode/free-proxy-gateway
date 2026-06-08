@@ -195,7 +195,7 @@ def build_config():
         except: pass
 
     proxy_tags = [o["tag"] for o in dynamic_selectors]
-    base_choices = ["WARP", "WARP1", "WARP2", "DIRECT"] + proxy_tags
+    base_choices = ["DIRECT", "WARP", "WARP1", "WARP2"] + proxy_tags
 
     return {
         "log": {"level": "info", "output": LOG_FILE, "timestamp": True},
