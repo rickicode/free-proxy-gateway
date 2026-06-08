@@ -540,7 +540,7 @@ WantedBy=multi-user.target
         ok("Cron already set")
 
     # Set up warp-refresh cron (tiap 2 hari)
-    warp_cron = "0 */48 * * * /usr/bin/python3 /opt/warp-refresh.py >> /var/log/warp-refresh.log 2>&1"
+    warp_cron = "0 0 */2 * * /usr/bin/python3 /opt/warp-refresh.py >> /var/log/warp-refresh.log 2>&1"
     if warp_cron not in existing:
         with tempfile.NamedTemporaryFile("w", delete=False) as f:
             f.write(existing + "\n" + warp_cron + "\n")
