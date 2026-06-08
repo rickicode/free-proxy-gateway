@@ -25,6 +25,8 @@ GW_CFG        = "/opt/gateway-config.json"
 STATE_FILE    = "/opt/.proxy-collector-state.json"   # track last update timestamp
 LOG_FILE      = "/opt/proxy-collector-last-run.json"  # public-readable last run info
 CLASH_SECRET  = "hijinet"
+PROXY_AWARE_SELECTORS = {"GLOBAL", "GOOGLE", "OPENAI", "IPCHECK", "PORT-1010", "PORT-1011", "PORT-1012"}
+MANAGED_SELECTORS = PROXY_AWARE_SELECTORS | {"WAN"}
 
 KEEP_MS       = 500       # keep existing proxy if clash delay < this
 MAX_FREE      = 40        # max outbounds in PROXY-FREE
@@ -237,7 +239,8 @@ def build_outbounds(kept_obs, fresh_proxies, kept_cc):
     for cc in sorted(by_cc.keys()):
         for item in by_cc[cc]:
             if item["keep_tag"]:
-                # Keep original tag
+                # Keep original tag, but force public proxy traffic through WAN1
+                item["outbound"]["bind_interface"] = load_wan_if()
                 outbounds.append(item["outbound"])
                 # Extract number from existing tag to update counter
                 parts = item["keep_tag"].split("-")
@@ -248,6 +251,7 @@ def build_outbounds(kept_obs, fresh_proxies, kept_cc):
                 cc_count[cc] = cc_count.get(cc, 0) + 1
                 ob = item["outbound"]
                 ob["tag"] = f"free-{cc}-{cc_count[cc]}"
+                ob["bind_interface"] = load_wan_if()
                 outbounds.append(ob)
 
     # Re-count for display with flags
@@ -309,7 +313,7 @@ def update_config(config, free_obs):
             })
 
     # ── Rebuild managed selectors, preserve custom ones ───────────────────
-    managed_tags = {"GLOBAL", "GOOGLE", "OPENAI", "IPCHECK", "PORT-1010", "PORT-1011", "PORT-1012"}
+    managed_tags = MANAGED_SELECTORS
     old_selectors = {}
     preserved = []
     for o in config["outbounds"]:
@@ -335,8 +339,8 @@ def update_config(config, free_obs):
         if not old:
             continue
         base = [c for c in old["outbounds"] if not c.startswith("PROXY-")]
-        # DIR, WARP*, PROXY-FREE first, then per-country sorted
-        proxy_groups = sorted(g for g in built_groups if g != tag)
+        # Proxy-aware selectors get PROXY-* choices; WAN selector stays WAN-only.
+        proxy_groups = sorted(g for g in built_groups if g != tag) if tag in PROXY_AWARE_SELECTORS else []
         config["outbounds"].append({
             "type": "selector",
             "tag": tag,

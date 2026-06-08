@@ -22,7 +22,8 @@ LOG_FILE      = "/var/log/sing-box.log"
 SINGBOX_VER   = "1.13.13"
 
 META_BASE   = "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite"
-MANAGED_SELECTORS = {"GLOBAL", "GOOGLE", "OPENAI", "IPCHECK", "PORT-1010", "PORT-1011", "PORT-1012"}
+PROXY_AWARE_SELECTORS = {"GLOBAL", "GOOGLE", "OPENAI", "IPCHECK", "PORT-1010", "PORT-1011", "PORT-1012"}
+MANAGED_SELECTORS = PROXY_AWARE_SELECTORS | {"WAN"}
 
 # WARP credentials — jangan hardcode! Di-load dari /opt/warp-creds.json
 # (dibikin otomatis oleh warp-refresh.py saat install)
@@ -214,7 +215,9 @@ def build_config():
 
     # Dynamic outbounds (PROXY-*, free-*) dikelola oleh proxy-collector.
     # Jangan di-preserve di base config — nanti ditambah otomatis.
-    base_choices = ["DIRECT", "WARP", "WARP1", "WARP2"]
+    wan_if = net.get("wan_if", "eth0")
+    wan2_if = net.get("wan2_if", "eth1")
+    base_choices = ["DIRECT", "WAN", "WAN-AUTO", "WAN1", "WAN2", "WARP", "WARP1", "WARP2"]
 
     return {
         "log": {"level": "info", "output": LOG_FILE, "timestamp": True},
@@ -265,6 +268,14 @@ def build_config():
         ],
         "outbounds": [
             {"type": "direct", "tag": "DIRECT"},
+            {"type": "direct", "tag": "WAN1", "bind_interface": wan_if},
+            {"type": "direct", "tag": "WAN2", "bind_interface": wan2_if},
+            {"type": "selector", "tag": "WAN",
+             "outbounds": ["WAN1", "WAN2"], "default": "WAN1"},
+            {"type": "urltest", "tag": "WAN-AUTO",
+             "outbounds": ["WAN1", "WAN2"],
+             "url": "http://cp.cloudflare.com/generate_204",
+             "interval": "30s", "tolerance": 50},
             {"type": "block", "tag": "BLOCK"},
             {"type": "direct", "tag": "WARP1", "bind_interface": "singtun0"},
             {"type": "direct", "tag": "WARP2", "bind_interface": "singtun1"},
@@ -273,7 +284,7 @@ def build_config():
              "url": "http://cp.cloudflare.com/generate_204",
              "interval": "3m", "tolerance": 50},
             {"type": "selector", "tag": "GLOBAL",
-             "outbounds": ["DIRECT", "WARP", "WARP1", "WARP2"],
+             "outbounds": base_choices,
              "default": "DIRECT"},
             {"type": "selector", "tag": "GOOGLE",
              "outbounds": base_choices, "default": "DIRECT"},
@@ -352,7 +363,7 @@ def apply_config(restart=True):
                 cfg["outbounds"].extend(o for o in dynamic if o.get("tag") not in existing_tags)
                 groups = sorted(o["tag"] for o in dynamic if o.get("tag", "").startswith("PROXY-"))
                 for o in cfg.get("outbounds", []):
-                    if o.get("type") == "selector" and o.get("tag") in MANAGED_SELECTORS:
+                    if o.get("type") == "selector" and o.get("tag") in PROXY_AWARE_SELECTORS:
                         base = [x for x in o.get("outbounds", []) if not x.startswith("PROXY-")]
                         o["outbounds"] = base + groups
                 cfg["outbounds"].extend(custom_selectors)
