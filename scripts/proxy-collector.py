@@ -256,24 +256,22 @@ def update_config(config, free_obs):
                 cc_groups[cc] = []
             cc_groups[cc].append(ob["tag"])
 
-    # Add PROXY-FREE urltest
+    # Add PROXY-FREE selector (manual pilih, tidak otomatis pindah)
     if free_tags:
         config["outbounds"].append({
-            "type": "urltest", "tag": "PROXY-FREE",
+            "type": "selector", "tag": "PROXY-FREE",
             "outbounds": free_tags,
-            "url": "http://cp.cloudflare.com/generate_204",
-            "interval": "10m", "tolerance": 100,
+            "default": free_tags[0],
         })
 
-    # Add per-country urltest groups
+    # Add per-country selector groups
     for cc in TARGET_GROUPS:
         tags = cc_groups.get(cc, [])
         if tags:
             config["outbounds"].append({
-                "type": "urltest", "tag": f"PROXY-{cc}",
+                "type": "selector", "tag": f"PROXY-{cc}",
                 "outbounds": tags,
-                "url": "http://cp.cloudflare.com/generate_204",
-                "interval": "10m", "tolerance": 100,
+                "default": tags[0],
             })
 
     # ── Rebuild selectors from scratch ────────────────────────────────────
