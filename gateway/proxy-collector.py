@@ -293,13 +293,15 @@ def update_config(config, free_obs):
                 cc_groups[cc] = []
             cc_groups[cc].append(ob["tag"])
 
-    # PROXY-FREE: urltest — auto pilih proxy tercepat dari semua negara
+    # PROXY-FREE: loadbalance sticky-sessions — ganti proxy tiap TTL
     if free_tags:
         config["outbounds"].append({
-            "type": "urltest", "tag": "PROXY-FREE",
+            "type": "loadbalance", "tag": "PROXY-FREE",
             "outbounds": free_tags,
             "url": "http://cp.cloudflare.com/generate_204",
-            "interval": "10m", "tolerance": 100,
+            "interval": "10m",
+            "strategy": "sticky-sessions",
+            "ttl": "2m",
         })
 
     # Per-country: selector — user pilih manual, tidak loncat-loncat

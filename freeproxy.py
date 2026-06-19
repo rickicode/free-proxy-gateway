@@ -47,7 +47,8 @@ DEFAULT_IP_CHECK_URLS = (
     "https://api.ipify.org",
     "https://icanhazip.com",
 )
-DEFAULT_GROUPS = ("PROXY-FREE", "PROXY-ID", "PROXY-SG", "PROXY-US")
+# Import shared constants and functions from lib.common
+from lib.common import DEFAULT_GROUPS, build_groups, build_singbox_snapshot
 
 
 def parse_args():
@@ -707,59 +708,6 @@ def build_proxy_record(index, candidate):
         "source_name": candidate["source_name"],
         "source_line": candidate["source_line"],
         "outbound": outbound,
-    }
-
-
-def build_groups(records, target_countries):
-    groups = {"PROXY-FREE": [record["tag"] for record in records]}
-    for code in target_countries:
-        groups[f"PROXY-{code}"] = [record["tag"] for record in records if record["country_code"] == code]
-    return groups
-
-
-def build_singbox_snapshot(records, groups):
-    outbounds = [{"type": "direct", "tag": "DIRECT"}, {"type": "block", "tag": "BLOCK"}]
-    outbounds.extend(record["outbound"] for record in records)
-    for group_name in DEFAULT_GROUPS:
-        tags = groups.get(group_name, [])
-        if not tags:
-            continue
-        outbounds.append(
-            {
-                "type": "urltest",
-                "tag": group_name,
-                "outbounds": tags,
-                "url": "http://cp.cloudflare.com/generate_204",
-                "interval": "5m",
-                "tolerance": 100,
-            }
-        )
-    selectable = ["DIRECT"] + [group for group in DEFAULT_GROUPS if groups.get(group)]
-    outbounds.append(
-        {
-            "type": "selector",
-            "tag": "GLOBAL",
-            "outbounds": selectable,
-            "default": "DIRECT",
-        }
-    )
-    return {
-        "experimental": {
-            "clash_api": {
-                "external_controller": "127.0.0.1:9090",
-                "secret": "",
-            }
-        },
-        "inbounds": [
-            {
-                "type": "mixed",
-                "tag": "mixed-in",
-                "listen": "127.0.0.1",
-                "listen_port": 7890,
-            }
-        ],
-        "outbounds": outbounds,
-        "route": {"auto_detect_interface": True, "final": "GLOBAL"},
     }
 
 

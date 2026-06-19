@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 import argparse
 import json
+import sys
 import time
 from pathlib import Path
 
-DEFAULT_GROUPS = ("PROXY-FREE", "PROXY-ID", "PROXY-SG", "PROXY-US")
+# Import shared constants and functions from lib.common
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from lib.common import DEFAULT_GROUPS, build_groups, build_singbox_snapshot
 
 
 def parse_args():
@@ -44,59 +47,6 @@ def dedupe_proxies(payloads):
         proxy["tag"] = f"FREE-{proxy['country_code']}-{index:04d}-{suffix}"
         proxy["outbound"]["tag"] = proxy["tag"]
     return proxies
-
-
-def build_groups(proxies, target_countries):
-    groups = {"PROXY-FREE": [proxy["tag"] for proxy in proxies]}
-    for code in target_countries:
-        groups[f"PROXY-{code}"] = [proxy["tag"] for proxy in proxies if proxy["country_code"] == code]
-    return groups
-
-
-def build_singbox_snapshot(proxies, groups):
-    outbounds = [{"type": "direct", "tag": "DIRECT"}, {"type": "block", "tag": "BLOCK"}]
-    outbounds.extend(proxy["outbound"] for proxy in proxies)
-    for group_name in DEFAULT_GROUPS:
-        tags = groups.get(group_name, [])
-        if not tags:
-            continue
-        outbounds.append(
-            {
-                "type": "urltest",
-                "tag": group_name,
-                "outbounds": tags,
-                "url": "http://cp.cloudflare.com/generate_204",
-                "interval": "5m",
-                "tolerance": 100,
-            }
-        )
-    selectable = ["DIRECT"] + [group for group in DEFAULT_GROUPS if groups.get(group)]
-    outbounds.append(
-        {
-            "type": "selector",
-            "tag": "GLOBAL",
-            "outbounds": selectable,
-            "default": "DIRECT",
-        }
-    )
-    return {
-        "experimental": {
-            "clash_api": {
-                "external_controller": "127.0.0.1:9090",
-                "secret": "",
-            }
-        },
-        "inbounds": [
-            {
-                "type": "mixed",
-                "tag": "mixed-in",
-                "listen": "127.0.0.1",
-                "listen_port": 7890,
-            }
-        ],
-        "outbounds": outbounds,
-        "route": {"auto_detect_interface": True, "final": "GLOBAL"},
-    }
 
 
 def main():
