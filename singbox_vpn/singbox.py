@@ -117,20 +117,6 @@ def generate_config(cfg: dict, proxy_outbounds: list[dict] | None = None) -> dic
             "exclude_interface": exclude_tun,
         },
         {
-            "type": "tproxy",
-            "tag": "tproxy-in",
-            "listen": "0.0.0.0",
-            "listen_port": cfg.get("nat", {}).get("tproxy_port", 7893),
-            "network": "tcp",
-        },
-        {
-            "type": "tproxy",
-            "tag": "tproxy-udp-in",
-            "listen": "0.0.0.0",
-            "listen_port": cfg.get("nat", {}).get("tproxy_port", 7893),
-            "network": "udp",
-        },
-        {
             "type": "mixed",
             "tag": "mixed-in",
             "listen": "0.0.0.0",
