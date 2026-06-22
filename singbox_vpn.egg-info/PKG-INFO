@@ -1,0 +1,9 @@
+Metadata-Version: 2.4
+Name: singbox-vpn
+Version: 1.0.0
+Summary: Auto WARP + Free Proxy + NAT manager for sing-box
+Requires-Python: >=3.10
+Requires-Dist: pyyaml
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary

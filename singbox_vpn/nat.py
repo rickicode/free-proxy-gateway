@@ -38,12 +38,15 @@ def setup_routing(iface: str, cfg: dict) -> bool:
 
     header(f"Policy Routing — {iface}")
 
-    # Remove existing rule if any
-    run(["ip", "rule", "del", "from", subnet])
+    # Local subnet rule FIRST (higher priority = lower number)
+    run(["ip", "rule", "del", "to", subnet])
+    run(["ip", "rule", "add", "to", subnet, "lookup", "main", "pref", "8998"])
+    ok(f"ip rule: to {subnet} → main (local)")
 
-    # Add rule before the goto rules (pref 8999 < 9000)
+    # Then policy routing for outbound traffic
+    run(["ip", "rule", "del", "from", subnet])
     run(["ip", "rule", "add", "from", subnet, "lookup", str(table_id), "pref", "8999"])
-    ok(f"ip rule: {subnet} → table {table_id}")
+    ok(f"ip rule: from {subnet} → table {table_id}")
 
     # MASQUERADE for return traffic via singtun/tun interfaces
     for tun_iface in ["singtun0", "singtun1", "tun0"]:
@@ -84,16 +87,21 @@ def setup_routing_persistent(iface: str, cfg: dict) -> bool:
     script_content = f"""#!/bin/bash
 # Policy routing for {iface} → sing-box
 sleep 3
+# Local subnet rule FIRST (higher priority = lower number)
+ip rule del to {subnet} 2>/dev/null
+ip rule add to {subnet} lookup main pref 8998
+# Then policy routing for outbound traffic
 ip rule del from {subnet} 2>/dev/null
 ip rule add from {subnet} lookup {table_id} pref 8999
+# MASQUERADE for return traffic
 for tun in singtun0 singtun1 tun0; do
   iptables -t nat -A POSTROUTING -s {subnet} -o $tun -j MASQUERADE 2>/dev/null
 done
-# Remove any TProxy chains that might interfere
+# Cleanup TProxy chains
 iptables -t mangle -D PREROUTING -i {iface} -j SING_BOX 2>/dev/null
 iptables -t mangle -F SING_BOX 2>/dev/null
 iptables -t mangle -X SING_BOX 2>/dev/null
-echo "Routing applied for {iface}"
+echo "Policy routing applied for {iface}"
 """
 
     script_path = Path(f"/usr/local/bin/fix-nat-{iface}.sh")
