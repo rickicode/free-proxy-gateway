@@ -17,6 +17,9 @@ def main():
     # ── Top-level commands ─────────────────────────────────────────
     if cmd == "setup":
         _cmd_setup(args[1:])
+    elif cmd == "install":
+        from .installer import install_all
+        install_all()
     elif cmd == "warp":
         _cmd_warp(args[1:])
     elif cmd == "proxy":
@@ -50,7 +53,8 @@ USAGE:
     singbox-vpn <command> [subcommand] [options]
 
 COMMANDS:
-    setup                           Full setup (WARP + sing-box + NAT)
+    install                         Install dependencies (sing-box, AdGuard, wg)
+    setup                           Full setup (install + WARP + sing-box + NAT)
     warp setup|remove|status        Manage WARP WireGuard endpoints
     proxy fetch|status              Manage free proxy pool
     nat add|remove|status|list      Manage NAT/TProxy per-interface
@@ -59,6 +63,8 @@ COMMANDS:
     doctor                          Run health check diagnostics
 
 EXAMPLES:
+    singbox-vpn install                     # Install dependencies only
+    singbox-vpn setup                       # Full setup (install + configure)
     singbox-vpn setup                       # Full setup
     singbox-vpn warp setup                  # Register 2 WARP endpoints
     singbox-vpn proxy fetch                 # Fetch live proxies from GitHub
@@ -79,12 +85,17 @@ EXAMPLES:
 
 def _cmd_setup(args):
     require_root()
-    from .config import load_config, save_config
-    from . import warp, singbox, nat, proxy
+    from .config import load_config, save_config, get_nat_interfaces
+    from . import warp, singbox, nat, proxy, installer
 
     cfg = load_config()
 
     header("═══ Full Setup ═══")
+
+    # 0. Install dependencies
+    if not installer.install_all():
+        fail("Install dependencies gagal")
+        sys.exit(1)
 
     # 1. WARP
     if not warp.setup(cfg):
@@ -103,8 +114,13 @@ def _cmd_setup(args):
     proxy.fetch_and_update(cfg)
 
     # 5. NAT for configured interfaces
-    for iface in nat.get_nat_interfaces(cfg):
-        nat.setup_interface(iface, cfg)
+    nat_ifaces = get_nat_interfaces(cfg)
+    if not nat_ifaces:
+        warn("Tidak ada interface NAT dikonfigurasi")
+        info("Jalankan: singbox-vpn nat add <interface>")
+    else:
+        for iface in nat_ifaces:
+            nat.setup_interface(iface, cfg)
 
     # 6. Restart
     singbox.restart()
@@ -112,6 +128,7 @@ def _cmd_setup(args):
     save_config(cfg)
     header("✅ Setup selesai!")
     info("Jalankan 'singbox-vpn status' untuk melihat status")
+    info("Jalankan 'singbox-vpn nat add <interface>' untuk tambah NAT")
 
 
 # ── warp ──────────────────────────────────────────────────────────────
