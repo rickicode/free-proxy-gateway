@@ -1,2 +1,0 @@
-[console_scripts]
-singbox-vpn = singbox_vpn.cli:main
