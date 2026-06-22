@@ -89,6 +89,10 @@ ip rule add from {subnet} lookup {table_id} pref 8999
 for tun in singtun0 singtun1 tun0; do
   iptables -t nat -A POSTROUTING -s {subnet} -o $tun -j MASQUERADE 2>/dev/null
 done
+# Remove any TProxy chains that might interfere
+iptables -t mangle -D PREROUTING -i {iface} -j SING_BOX 2>/dev/null
+iptables -t mangle -F SING_BOX 2>/dev/null
+iptables -t mangle -X SING_BOX 2>/dev/null
 echo "Routing applied for {iface}"
 """
 
