@@ -1,0 +1,89 @@
+# singbox-vpn config example
+# Copy to /etc/singbox-vpn/config.yaml and adjust as needed
+
+warp:
+  interfaces:
+  - singtun0
+  - singtun1
+  endpoint: engage.cloudflareclient.com
+  port: 2408
+  public_key: bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=
+  mtu: 1280
+
+proxy:
+  github_raw: https://raw.githubusercontent.com/rickicode/free-proxy-singbox/main/output/live-proxies.json
+  max_free: 40
+  clash_secret: hijinet
+  target_countries:
+  - US
+  - SG
+  - ID
+  - JP
+  - KR
+  - HK
+  - DE
+  - FR
+  - GB
+  - CA
+  - AU
+  - IN
+  - NL
+  - BR
+  proxy_aware_selectors:
+  - GLOBAL
+  - GOOGLE
+  - OPENAI
+  - IPCHECK
+  - PORT-1010
+  - PORT-1011
+  - PORT-1012
+
+nat:
+  interfaces:
+  - eth2
+  dhcp_enabled: true
+  dhcp_range_start: 100
+  dhcp_range_end: 200
+  dhcp_lease: 12h
+  dhcp_backend: adguard
+
+singbox:
+  log_level: info
+  log_file: /var/log/sing-box.log
+  mixed_port: 7890
+  extra_mixed_ports:
+  - 1010
+  - 1011
+  - 1012
+  clash_api_port: 9090
+  clash_api_secret: hijinet
+  clash_api_ui: /etc/sing-box/ui
+  dns_server: 1.1.1.1
+  exclude_from_tun:
+  - singtun0
+  - singtun1
+
+route:
+  rule_sets:
+  - tag: community-speedtest
+    type: remote
+    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/speedtest.srs
+  - tag: community-openai
+    type: remote
+    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/openai.srs
+  - tag: community-anthropic
+    type: remote
+    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/anthropic.srs
+  - tag: community-google
+    type: remote
+    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/google.srs
+  - tag: community-google-play
+    type: remote
+    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/google-play.srs
+  - tag: community-youtube
+    type: remote
+    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/youtube.srs
+  domain_outbound_map:
+    community-openai,community-anthropic: OPENAI
+    community-google,community-google-play,community-youtube: GOOGLE
+    community-speedtest,local-ip-check: IPCHECK
