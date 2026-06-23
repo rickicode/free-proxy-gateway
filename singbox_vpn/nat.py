@@ -50,6 +50,12 @@ for iface in c.get(\\"nat\\", {}).get(\\"interfaces\\", []):
     print(iface)
 " 2>/dev/null)
 
+# DNS bypass — direct, tidak lewat WARP
+ip rule del ipproto udp dport 53 2>/dev/null
+ip rule del ipproto tcp dport 53 2>/dev/null
+ip rule add ipproto udp dport 53 lookup main pref 8997
+ip rule add ipproto tcp dport 53 lookup main pref 8997
+
 for IFACE in $INTERFACES; do
   SUBNET=$(python3 -c "
 import subprocess
@@ -141,6 +147,13 @@ def setup_routing(iface: str, cfg: dict) -> bool:
     table_id = _get_route_table_id(iface)
 
     header(f"Policy Routing — {iface}")
+
+    # DNS bypass — direct, tidak lewat WARP
+    run(["ip", "rule", "del", "ipproto", "udp", "dport", "53"])
+    run(["ip", "rule", "del", "ipproto", "tcp", "dport", "53"])
+    run(["ip", "rule", "add", "ipproto", "udp", "dport", "53", "lookup", "main", "pref", "8997"])
+    run(["ip", "rule", "add", "ipproto", "tcp", "dport", "53", "lookup", "main", "pref", "8997"])
+    ok("DNS bypass: port 53 → direct")
 
     # Local subnet rule FIRST (higher priority = lower number)
     run(["ip", "rule", "del", "to", subnet])
