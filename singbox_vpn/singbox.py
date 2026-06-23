@@ -198,11 +198,13 @@ def generate_config(cfg: dict, proxy_outbounds: list[dict] | None = None) -> dic
         else:
             port_defaults[port] = "WARP"
 
+    # Read selector defaults from config
+    selector_defaults_cfg = scfg.get("selector_defaults", {})
     managed_selectors = {
-        "GLOBAL": "DIRECT",
-        "GOOGLE": "DIRECT",
-        "IPCHECK": "WARP",
-        "OPENAI": "WARP",
+        "GLOBAL": selector_defaults_cfg.get("GLOBAL", "DIRECT"),
+        "GOOGLE": selector_defaults_cfg.get("GOOGLE", "DIRECT"),
+        "IPCHECK": selector_defaults_cfg.get("IPCHECK", "WARP"),
+        "OPENAI": selector_defaults_cfg.get("OPENAI", "WARP"),
         "WAN": "WAN1",
     }
     for port in extra_ports:

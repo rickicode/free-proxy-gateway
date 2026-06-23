@@ -41,6 +41,12 @@ DEFAULT_CONFIG = {
         "dns_server": "1.1.1.1",
         "wan_interfaces": [],       # auto-detected, e.g. ["eth0", "eth1"]
         "exclude_from_tun": ["singtun0", "singtun1"],
+        "selector_defaults": {
+            "GLOBAL": "DIRECT",
+            "GOOGLE": "DIRECT",
+            "OPENAI": "WARP",
+            "IPCHECK": "WARP",
+        },
     },
     "route": {
         "rule_sets": [

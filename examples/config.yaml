@@ -62,6 +62,11 @@ singbox:
   exclude_from_tun:
   - singtun0
   - singtun1
+  selector_defaults:
+    GLOBAL: DIRECT
+    GOOGLE: DIRECT
+    OPENAI: WARP
+    IPCHECK: WARP
 
 route:
   rule_sets:
