@@ -29,7 +29,7 @@ registered=0
 for i in $(seq 1 $COUNT); do
   label="WARP$i"
   echo -n "  $label: "
-  work=$(mktemp -d /tmp/warp-XXXXX)
+  work=$(mktemp -d)
   cd "$work"
 
   if ! wgcf generate 2>/dev/null; then
