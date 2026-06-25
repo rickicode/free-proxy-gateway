@@ -9,6 +9,11 @@ mode: rule
 log-level: warning
 ipv6: false
 
+proxies:
+  - name: WAN2
+    type: direct
+    interface-name: eth1
+
 dns:
   enable: true
   listen: :1053
@@ -46,8 +51,23 @@ proxy-groups:
     type: select
     proxies:
       - DIRECT
+      - WAN2
       - PROXY-FREE
       - PROXY-WARP
+
+  - name: WAN
+    type: select
+    proxies:
+      - DIRECT
+      - WAN2
+
+  - name: WAN-TEST
+    type: url-test
+    proxies:
+      - DIRECT
+      - WAN2
+    url: http://www.gstatic.com/generate_204
+    interval: 300
 
   - name: PROXY-FREE
     type: url-test
