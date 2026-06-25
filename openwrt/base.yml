@@ -221,6 +221,7 @@ proxy-groups:
       - PROXY-WARP
 
 rule-providers:
+  # Adblock (remote)
   oisd-big:
     type: http
     behavior: domain
@@ -236,261 +237,68 @@ rule-providers:
   adguard:
     type: http
     behavior: domain
-    url: "https://raw.githubusercontent.com/AdguardTeam/FiltersRegistry/master/filters/filter_15_DnsFilter/filter.txt"
+    url: "https://adguardteam.github.io/HostlistsRegistry/assets/filter_1.txt"
     path: ./ruleset/adguard.txt
     interval: 86400
 
+  # Service rules (local)
+  private:
+    type: http
+    behavior: classical
+    url: "https://raw.githubusercontent.com/rickicode/free-proxy-singbox/main/openwrt/rules/private.txt"
+    path: ./ruleset/private.txt
+    interval: 86400
+  google:
+    type: http
+    behavior: classical
+    url: "https://raw.githubusercontent.com/rickicode/free-proxy-singbox/main/openwrt/rules/google.txt"
+    path: ./ruleset/google.txt
+    interval: 86400
+  ai:
+    type: http
+    behavior: classical
+    url: "https://raw.githubusercontent.com/rickicode/free-proxy-singbox/main/openwrt/rules/ai.txt"
+    path: ./ruleset/ai.txt
+    interval: 86400
+  check-ip:
+    type: http
+    behavior: classical
+    url: "https://raw.githubusercontent.com/rickicode/free-proxy-singbox/main/openwrt/rules/check-ip.txt"
+    path: ./ruleset/check-ip.txt
+    interval: 86400
+  social:
+    type: http
+    behavior: classical
+    url: "https://raw.githubusercontent.com/rickicode/free-proxy-singbox/main/openwrt/rules/social.txt"
+    path: ./ruleset/social.txt
+    interval: 86400
+
 rules:
+  # Adblock
   - RULE-SET,oisd-big,BLOCKED
   - RULE-SET,oisd-lite,BLOCKED
   - RULE-SET,adguard,BLOCKED
   - GEOSITE,category-ads-all,BLOCKED
-  - GEOSITE,private,DIRECT
-  - GEOIP,private,DIRECT,no-resolve
-  - GEOSITE,cn,DIRECT
-  - GEOIP,cn,DIRECT,no-resolve
-  - GEOSITE,google,GOOGLE
-  - GEOSITE,googlefcm,GOOGLE
-  - DOMAIN-SUFFIX,google.com,GOOGLE
-  - DOMAIN-SUFFIX,googleapis.com,GOOGLE
-  - DOMAIN-SUFFIX,googlevideo.com,GOOGLE
-  - DOMAIN-SUFFIX,gstatic.com,GOOGLE
-  - DOMAIN-SUFFIX,ggpht.com,GOOGLE
-  - DOMAIN-SUFFIX,youtube.com,GOOGLE
-  - DOMAIN-SUFFIX,ytimg.com,GOOGLE
-  - DOMAIN-SUFFIX,googleusercontent.com,GOOGLE
-  - DOMAIN-SUFFIX,googleadservices.com,GOOGLE
-  - DOMAIN-SUFFIX,googlesyndication.com,GOOGLE
-  - GEOSITE,openai,AI
-  - DOMAIN-SUFFIX,openai.com,AI
-  - DOMAIN-SUFFIX,chatgpt.com,AI
-  - DOMAIN-SUFFIX,oaiusercontent.com,AI
-  - DOMAIN-SUFFIX,ai.azure.com,AI
-  - DOMAIN-SUFFIX,anthropic.com,AI
-  - DOMAIN-SUFFIX,claude.ai,AI
-  - DOMAIN-SUFFIX,perplexity.ai,AI
-  - DOMAIN-SUFFIX,copilot.microsoft.com,AI
-  - DOMAIN-SUFFIX,groq.com,AI
-  - DOMAIN-SUFFIX,mistral.ai,AI
-  - DOMAIN-SUFFIX,gemini.google.com,AI
-  - DOMAIN-SUFFIX,bard.google.com,AI
-  - DOMAIN-SUFFIX,deepseek.com,AI
-  - DOMAIN-SUFFIX,kimi.ai,AI
-  - DOMAIN-SUFFIX,doubao.com,AI
-  - DOMAIN-SUFFIX,zhipu.ai,AI
-  - DOMAIN-SUFFIX,moonshot.cn,AI
-  - DOMAIN-SUFFIX,minimaxi.com,AI
-  - DOMAIN-SUFFIX,baichuan-ai.com,AI
-  - DOMAIN-SUFFIX,qwen.ai,AI
-  - DOMAIN-SUFFIX,tongyi.aliyun.com,AI
-  - DOMAIN-SUFFIX,huggingface.co,AI
-  - DOMAIN-SUFFIX,replicate.com,AI
-  - DOMAIN-SUFFIX,together.ai,AI
-  - DOMAIN-SUFFIX,cohere.com,AI
-  - DOMAIN-SUFFIX,ai21.com,AI
-  - DOMAIN-SUFFIX,stability.ai,AI
-  - DOMAIN-SUFFIX,midjourney.com,AI
-  - DOMAIN-SUFFIX,character.ai,AI
-  - DOMAIN-SUFFIX,poe.com,AI
-  - DOMAIN-SUFFIX,you.com,AI
-  - DOMAIN-SUFFIX,phind.com,AI
-  - DOMAIN-SUFFIX,cursor.sh,AI
-  - DOMAIN-SUFFIX,codeium.com,AI
-  - DOMAIN-SUFFIX,githubcopilot.com,AI
-  - DOMAIN-SUFFIX,codestral.com,AI
-  - DOMAIN-SUFFIX,fireworks.ai,AI
-  - DOMAIN-SUFFIX,anyscale.com,AI
-  - DOMAIN-SUFFIX,openrouter.ai,AI
-  - DOMAIN-SUFFIX,aimlapi.com,AI
-  - DOMAIN-SUFFIX,elevenlabs.io,AI
-  - DOMAIN-SUFFIX,suno.ai,AI
-  - DOMAIN-SUFFIX,runwayml.com,AI
-  - DOMAIN-SUFFIX,synthesia.io,AI
-  - DOMAIN-SUFFIX,search.brave.com,AI
-  - DOMAIN-SUFFIX,claude.com,AI
-  - DOMAIN,ifconfig.me,CHECK-IP
-  - DOMAIN-SUFFIX,ifconfig.me,CHECK-IP
-  - DOMAIN,ifconfig.co,CHECK-IP
-  - DOMAIN-SUFFIX,ifconfig.co,CHECK-IP
-  - DOMAIN,icanhazip.com,CHECK-IP
-  - DOMAIN-SUFFIX,icanhazip.com,CHECK-IP
-  - DOMAIN,ip.me,CHECK-IP
-  - DOMAIN,ip.sb,CHECK-IP
-  - DOMAIN-SUFFIX,ip.sb,CHECK-IP
-  - DOMAIN,api.ip.sb,CHECK-IP
-  - DOMAIN,whatismyip.akamai.com,CHECK-IP
-  - DOMAIN,checkip.amazonaws.com,CHECK-IP
-  - DOMAIN,myip.opendns.com,CHECK-IP
-  - DOMAIN,whoami.akamai.net,CHECK-IP
-  - DOMAIN,echo.irc.wtf,CHECK-IP
-  - DOMAIN,tnx.nl,CHECK-IP
-  - DOMAIN,l2.io,CHECK-IP
-  - DOMAIN,ipecho.net,CHECK-IP
-  - DOMAIN-SUFFIX,ipecho.net,CHECK-IP
-  - DOMAIN,wtfismyip.com,CHECK-IP
-  - DOMAIN-SUFFIX,wtfismyip.com,CHECK-IP
-  - DOMAIN,ipinfo.io,CHECK-IP
-  - DOMAIN-SUFFIX,ipinfo.io,CHECK-IP
-  - DOMAIN,myip.dnsomatic.com,CHECK-IP
-  - DOMAIN,traceip.net,CHECK-IP
-  - DOMAIN-SUFFIX,traceip.net,CHECK-IP
-  - DOMAIN,api.ipify.org,CHECK-IP
-  - DOMAIN-SUFFIX,ipify.org,CHECK-IP
-  - DOMAIN,ip.3322.net,CHECK-IP
-  - DOMAIN,ip.cip.cc,CHECK-IP
-  - DOMAIN-SUFFIX,ipapi.co,CHECK-IP
-  - DOMAIN,api.ipapi.com,CHECK-IP
-  - DOMAIN-SUFFIX,ipwhois.io,CHECK-IP
-  - DOMAIN,ipwho.is,CHECK-IP
-  - DOMAIN-SUFFIX,ipwhois.app,CHECK-IP
-  - DOMAIN-SUFFIX,ipstack.com,CHECK-IP
-  - DOMAIN-SUFFIX,ipgeolocation.io,CHECK-IP
-  - DOMAIN-SUFFIX,db-ip.com,CHECK-IP
-  - DOMAIN-SUFFIX,ip2location.com,CHECK-IP
-  - DOMAIN-SUFFIX,ip2c.org,CHECK-IP
-  - DOMAIN-SUFFIX,extreme-ip-lookup.com,CHECK-IP
-  - DOMAIN-SUFFIX,ipapi.is,CHECK-IP
-  - DOMAIN-SUFFIX,bigdatacloud.com,CHECK-IP
-  - DOMAIN-SUFFIX,abstractapi.com,CHECK-IP
-  - DOMAIN-SUFFIX,seeip.org,CHECK-IP
-  - DOMAIN,api.seeip.org,CHECK-IP
-  - DOMAIN,ip.anysrc.com,CHECK-IP
-  - DOMAIN,ip-api.com,CHECK-IP
-  - DOMAIN-SUFFIX,ip-api.com,CHECK-IP
-  - DOMAIN-SUFFIX,ipapi.com,CHECK-IP
-  - DOMAIN,ip.taobao.com,CHECK-IP
-  - DOMAIN,ip.qq.com,CHECK-IP
-  - DOMAIN,ip.echo.qq.com,CHECK-IP
-  - DOMAIN-SUFFIX,ip.cn,CHECK-IP
-  - DOMAIN-SUFFIX,ipip.net,CHECK-IP
-  - DOMAIN,myip.ipip.net,CHECK-IP
-  - DOMAIN,ip.dnsexit.com,CHECK-IP
-  - DOMAIN,ip.smart-ip.net,CHECK-IP
-  - DOMAIN,ip4.me,CHECK-IP
-  - DOMAIN-SUFFIX,ip4.me,CHECK-IP
-  - DOMAIN,api64.ipify.org,CHECK-IP
-  - DOMAIN,api.bigdatacloud.net,CHECK-IP
-  - DOMAIN,geolocation-db.com,CHECK-IP
-  - DOMAIN-SUFFIX,geolocation-db.com,CHECK-IP
-  - DOMAIN,ipwhois.app,CHECK-IP
-  - DOMAIN,ip-api.io,CHECK-IP
-  - DOMAIN-SUFFIX,ip-api.io,CHECK-IP
-  - DOMAIN,ipfind.co,CHECK-IP
-  - DOMAIN-SUFFIX,ipfind.co,CHECK-IP
-  - DOMAIN,ipapi.com,CHECK-IP
-  - DOMAIN,ipgeolocation.abstractapi.com,CHECK-IP
-  - DOMAIN,ipapi.co,CHECK-IP
-  - DOMAIN,ip.520114.xyz,CHECK-IP
-  - DOMAIN,ip.bsc.cool,CHECK-IP
-  - DOMAIN,ip.900cha.com,CHECK-IP
-  - DOMAIN,ip.useragentinfo.com,CHECK-IP
-  - DOMAIN,whatismyipaddress.com,CHECK-IP
-  - DOMAIN-SUFFIX,whatismyipaddress.com,CHECK-IP
-  - DOMAIN,myip.com,CHECK-IP
-  - DOMAIN-SUFFIX,myip.com,CHECK-IP
-  - DOMAIN-SUFFIX,ipchicken.com,CHECK-IP
-  - DOMAIN-SUFFIX,ipleak.net,CHECK-IP
-  - DOMAIN,ipleak.net,CHECK-IP
-  - DOMAIN-SUFFIX,iplocation.net,CHECK-IP
-  - DOMAIN,iplocation.net,CHECK-IP
-  - DOMAIN-SUFFIX,ip2location.com,CHECK-IP
-  - DOMAIN,ip2location.com,CHECK-IP
-  - DOMAIN-SUFFIX,ipfingerprints.com,CHECK-IP
-  - DOMAIN,ipfingerprints.com,CHECK-IP
-  - DOMAIN-SUFFIX,whatismyip.com,CHECK-IP
-  - DOMAIN,whatismyip.com,CHECK-IP
-  - DOMAIN-SUFFIX,ipchecking.com,CHECK-IP
-  - DOMAIN,ipchecking.com,CHECK-IP
-  - DOMAIN-SUFFIX,ipaddress.sh,CHECK-IP
-  - DOMAIN,ipaddress.sh,CHECK-IP
-  - DOMAIN-SUFFIX,myipaddress.com,CHECK-IP
-  - DOMAIN,myipaddress.com,CHECK-IP
-  - DOMAIN-SUFFIX,showip.net,CHECK-IP
-  - DOMAIN,showip.net,CHECK-IP
-  - DOMAIN-SUFFIX,my-ip.io,CHECK-IP
-  - DOMAIN,my-ip.io,CHECK-IP
-  - DOMAIN-SUFFIX,ipinfo.io,CHECK-IP
-  - DOMAIN,ipinfo.io,CHECK-IP
-  - DOMAIN-SUFFIX,ipapi.is,CHECK-IP
-  - DOMAIN,ipapi.is,CHECK-IP
-  - DOMAIN-SUFFIX,whoer.net,CHECK-IP
-  - DOMAIN,whoer.net,CHECK-IP
-  - DOMAIN-SUFFIX,browserleaks.com,CHECK-IP
-  - DOMAIN,browserleaks.com,CHECK-IP
-  - DOMAIN-SUFFIX,coveryourip.com,CHECK-IP
-  - DOMAIN,coveryourip.com,CHECK-IP
-  - DOMAIN-SUFFIX,hide-my-ip.com,CHECK-IP
-  - DOMAIN-SUFFIX,ipvoid.com,CHECK-IP
-  - DOMAIN,ipvoid.com,CHECK-IP
-  - DOMAIN-SUFFIX,iptracker.io,CHECK-IP
-  - DOMAIN,iptracker.io,CHECK-IP
-  - DOMAIN-SUFFIX,ip-tracker.org,CHECK-IP
-  - DOMAIN,ip-tracker.org,CHECK-IP
-  - DOMAIN-SUFFIX,iplogger.org,CHECK-IP
-  - DOMAIN-SUFFIX,grabify.link,CHECK-IP
-  - DOMAIN,iplogger.com,CHECK-IP
-  - DOMAIN,whatismyip.live,CHECK-IP
-  - DOMAIN-SUFFIX,whatismyip.live,CHECK-IP
-  - DOMAIN,ipinfo.telstra.com,CHECK-IP
-  - DOMAIN,check-my-ip.net,CHECK-IP
-  - DOMAIN-SUFFIX,check-my-ip.net,CHECK-IP
-  - DOMAIN,ipcheck.me,CHECK-IP
-  - DOMAIN-SUFFIX,ipcheck.me,CHECK-IP
-  - DOMAIN,showmyip.com,CHECK-IP
-  - DOMAIN-SUFFIX,showmyip.com,CHECK-IP
-  - DOMAIN,whatismyip.host,CHECK-IP
-  - DOMAIN-SUFFIX,whatismyip.host,CHECK-IP
-  - DOMAIN,ipmonkey.com,CHECK-IP
-  - DOMAIN-SUFFIX,ipmonkey.com,CHECK-IP
-  - DOMAIN,ipinfo.nu,CHECK-IP
-  - DOMAIN-SUFFIX,ipinfo.nu,CHECK-IP
-  - DOMAIN,ipaddress.com,CHECK-IP
-  - DOMAIN-SUFFIX,ipaddress.com,CHECK-IP
-  - DOMAIN,ipaddress.my,CHECK-IP
-  - DOMAIN-SUFFIX,ipaddress.my,CHECK-IP
-  - DOMAIN,checkip.net,CHECK-IP
-  - DOMAIN-SUFFIX,checkip.net,CHECK-IP
-  - DOMAIN,ip-checker.net,CHECK-IP
-  - DOMAIN-SUFFIX,ip-checker.net,CHECK-IP
-  - DOMAIN,ip-lookup.net,CHECK-IP
-  - DOMAIN-SUFFIX,ip-lookup.net,CHECK-IP
-  - DOMAIN,ipaddress.world,CHECK-IP
-  - DOMAIN-SUFFIX,ipaddress.world,CHECK-IP
-  - DOMAIN,ip-details.com,CHECK-IP
-  - DOMAIN-SUFFIX,ip-details.com,CHECK-IP
-  - DOMAIN,ip-api.com,CHECK-IP
-  - DOMAIN,mylocation.org,CHECK-IP
-  - DOMAIN-SUFFIX,mylocation.org,CHECK-IP
-  - DOMAIN,iplocation.com,CHECK-IP
-  - DOMAIN-SUFFIX,iplocation.com,CHECK-IP
-  - DOMAIN,ipgeolocation.com,CHECK-IP
-  - DOMAIN-SUFFIX,ipgeolocation.com,CHECK-IP
-  - DOMAIN,whatismyip.lantronanetworks.com,CHECK-IP
-  - DOMAIN,ip-ping.com,CHECK-IP
-  - DOMAIN-SUFFIX,ip-ping.com,CHECK-IP
-  - DOMAIN,ipaddress.is,CHECK-IP
-  - DOMAIN-SUFFIX,ipaddress.is,CHECK-IP
-  - DOMAIN,ipaddress.fyi,CHECK-IP
-  - DOMAIN-SUFFIX,ipaddress.fyi,CHECK-IP
-  - DOMAIN,myip.ipadressen.se,CHECK-IP
-  - DOMAIN,ipinfo.io,CHECK-IP
-  - DOMAIN,ip.me,CHECK-IP
-  - DOMAIN-SUFFIX,dnsleaktest.com,CHECK-IP
-  - DOMAIN-SUFFIX,speedtest.net,CHECK-IP
-  - DOMAIN,speedtest.net,CHECK-IP
-  - GEOSITE,telegram,SOCIAL
-  - GEOSITE,twitter,SOCIAL
-  - GEOSITE,facebook,SOCIAL
-  - GEOSITE,instagram,SOCIAL
-  - GEOSITE,reddit,SOCIAL
-  - GEOSITE,whatsapp,SOCIAL
-  - GEOSITE,spotify,SOCIAL
-  - GEOSITE,line,SOCIAL
-  - GEOSITE,signal,SOCIAL
-  - GEOSITE,clubhouse,SOCIAL
-  - DOMAIN-SUFFIX,threads.net,SOCIAL
-  - DOMAIN-SUFFIX,mastodon.social,SOCIAL
-  - DOMAIN-SUFFIX,bsky.app,SOCIAL
+
+  # Private & CN
+  - RULE-SET,private,DIRECT
+
+  # Google
+  - RULE-SET,google,GOOGLE
+
+  # AI
+  - RULE-SET,ai,AI
+
+  # IP check
+  - RULE-SET,check-ip,CHECK-IP
+
+  # Social
+  - RULE-SET,social,SOCIAL
+
+  # Social
+  - RULE-SET,social,SOCIAL
+
+  # Catch-all
   - GEOSITE,github,PROXY-FREE
   - GEOSITE,netflix,PROXY-FREE
   - MATCH,GLOBAL
