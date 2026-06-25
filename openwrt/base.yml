@@ -53,6 +53,47 @@ proxy-groups:
     type: url-test
     use:
       - free
+    filter: "(?!.*(?:PROXY-|WARP-))"
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+
+  - name: PROXY-ID
+    type: url-test
+    use:
+      - free
+    filter: "^🇮🇩"
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+
+  - name: PROXY-SG
+    type: url-test
+    use:
+      - free
+    filter: "^🇸🇬"
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+
+  - name: PROXY-US
+    type: url-test
+    use:
+      - free
+    filter: "^🇺🇸"
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+
+  - name: PROXY-ASIA
+    type: url-test
+    use:
+      - free
+    filter: "^(?:🇮🇩|🇸🇬|🇲🇾|🇹🇭|🇻🇳|🇵🇭|🇯🇵|🇰🇷|🇹🇼|🇭🇰|🇮🇳)"
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+
+  - name: PROXY-EU
+    type: url-test
+    use:
+      - free
+    filter: "^(?:🇩🇪|🇫🇷|🇳🇱|🇬🇧|🇸🇪|🇳🇴|🇫🇮|🇩🇰|🇵🇱|🇨🇿|🇦🇹|🇨🇭|🇧🇪|🇪🇸|🇵🇹|🇮🇹)"
     url: http://www.gstatic.com/generate_204
     interval: 300
 
