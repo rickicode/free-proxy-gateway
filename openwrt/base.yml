@@ -13,7 +13,7 @@ proxies:
   - name: WAN2
     type: direct
     interface-name: eth1
-  - name: REJECT
+  - name: AD-BLOCK
     type: reject
 
 dns:
@@ -52,7 +52,7 @@ proxy-groups:
   - name: BLOCKED
     type: select
     proxies:
-      - REJECT
+      - AD-BLOCK
       - DIRECT
       - GLOBAL
       - PROXY-FREE
