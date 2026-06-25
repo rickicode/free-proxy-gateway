@@ -56,7 +56,7 @@ echo ""
 
 # ── NIKKI ───────────────────────────────────────
 echo -n "  Nikki: "
-if pgrep -x mihomo >/dev/null 2>&1 || [ -f /etc/init.d/nikki ] || apk list --installed 2>/dev/null | grep -q nikki || opkg list-installed 2>/dev/null | grep -q nikki; then
+if [ -f /etc/init.d/nikki ]; then
   if [ "$FORCE" = "1" ]; then
     info "Force reinstall..."
     wget -qO - https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/feed.sh | ash 2>/dev/null
