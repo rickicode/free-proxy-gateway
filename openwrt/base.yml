@@ -16,22 +16,22 @@ proxies:
 
 # Public proxy inbound listeners
 inbound:
-  - name: PUB-WAN
+  - name: PROXY-1010
     type: mixed
     port: 1010
-    proxy: PUB-WAN
-  - name: PUB-FREE
+    proxy: PROXY-1010
+  - name: PROXY-1011
     type: mixed
     port: 1011
-    proxy: PUB-FREE
-  - name: PUB-ASIA
+    proxy: PROXY-1011
+  - name: PROXY-1012
     type: mixed
     port: 1012
-    proxy: PUB-ASIA
-  - name: PUB-WARP
+    proxy: PROXY-1012
+  - name: PROXY-1013
     type: mixed
     port: 1013
-    proxy: PUB-WARP
+    proxy: PROXY-1013
 
 dns:
   enable: true
@@ -82,7 +82,7 @@ proxy-groups:
     interval: 300
 
   # ── PUBLIC PROXY ───────────────────────────────
-  - name: PUB-WAN
+  - name: PROXY-1010
     type: select
     proxies:
       - WAN2
@@ -96,7 +96,7 @@ proxy-groups:
       - PROXY-EU
       - PROXY-WARP
 
-  - name: PUB-FREE
+  - name: PROXY-1011
     type: select
     proxies:
       - PROXY-FREE
@@ -109,7 +109,7 @@ proxy-groups:
       - DIRECT
       - PROXY-WARP
 
-  - name: PUB-ASIA
+  - name: PROXY-1012
     type: select
     proxies:
       - PROXY-ASIA
@@ -122,7 +122,7 @@ proxy-groups:
       - DIRECT
       - PROXY-WARP
 
-  - name: PUB-WARP
+  - name: PROXY-1013
     type: select
     use:
       - warp
