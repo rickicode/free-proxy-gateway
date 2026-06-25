@@ -1,5 +1,6 @@
 #!/bin/sh
 # OpenWrt Gateway Setup Script
+# Prerequisite: Nikki harus sudah terinstall (apk add nikki luci-app-nikki)
 # Usage: wget -O setup.sh https://raw.githubusercontent.com/rickicode/free-proxy-singbox/main/openwrt/setup.sh && ash setup.sh
 
 echo "=== OpenWrt Gateway Setup ==="
@@ -14,22 +15,19 @@ fi
 . /etc/openwrt_release
 echo "Detected: $DISTRIB_ID $DISTRIB_RELEASE ($DISTRIB_ARCH)"
 
-# Step 1: Install Nikki
-echo ""
-echo ">>> [1/5] Install Nikki (Mihomo wrapper)..."
-
+# Cek Nikki sudah terinstall
 if ! command -v nikki >/dev/null 2>&1; then
-  # Tambah feed Nikki
-  wget -O - https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/feed.sh | ash 2>/dev/null
-  apk update 2>/dev/null
-  apk add nikki luci-app-nikki 2>&1 | tail -3
-else
-  echo "Nikki sudah terinstall, skip."
+  echo ""
+  echo "Error: Nikki belum terinstall!"
+  echo "Install dulu:"
+  echo "  apk add nikki luci-app-nikki"
+  exit 1
 fi
+echo "Nikki: OK"
 
-# Step 2: Download proxy config
+# Step 1: Download proxy config
 echo ""
-echo ">>> [2/5] Download proxy config dari free-proxy-singbox..."
+echo ">>> [1/4] Download proxy config..."
 
 mkdir -p /etc/nikki/profiles
 wget -O /etc/nikki/profiles/free-proxy-singbox.yml \
@@ -41,44 +39,36 @@ else
   echo "Warning: Download gagal. Cek koneksi internet."
 fi
 
-# Step 3: Konfigurasi Nikki via UCI
+# Step 2: Konfigurasi Nikki via UCI
 echo ""
-echo ">>> [3/5] Konfigurasi Nikki..."
+echo ">>> [2/4] Konfigurasi Nikki..."
 
-# Profile
 uci set nikki.config.profile="file:free-proxy-singbox.yml"
 uci set nikki.config.enabled=1
-
-# Proxy mode: TPROXY
 uci set nikki.proxy.tcp_mode=tproxy
 uci set nikki.proxy.udp_mode=tproxy
 uci set nikki.proxy.ipv4_dns_hijack=1
 uci set nikki.proxy.ipv6_dns_hijack=1
 uci set nikki.proxy.lan_proxy=1
-
-# API
 uci set nikki.mixin.api_listen="[::]:9090"
 uci set nikki.mixin.api_secret="hijinet"
 uci set nikki.mixin.allow_lan=1
-
-# Disable auth (simple gateway)
 uci set nikki.@authentication[0].enabled=0
-
 uci commit nikki
 echo "OK: Nikki configured."
 
-# Step 4: Firewall
+# Step 3: Firewall
 echo ""
-echo ">>> [4/5] Firewall: buka akses WAN..."
+echo ">>> [3/4] Firewall: buka akses WAN..."
 
 uci set firewall.@zone[1].input=ACCEPT
 uci commit firewall
 /etc/init.d/firewall restart 2>/dev/null
 echo "OK: Firewall updated."
 
-# Step 5: Auto-update cron
+# Step 4: Auto-update cron
 echo ""
-echo ">>> [5/5] Setup auto-update proxy list (tiap 12 jam)..."
+echo ">>> [4/4] Setup auto-update (tiap 12 jam)..."
 
 mkdir -p /usr/local/bin
 cat > /usr/local/bin/update-proxy.sh << 'SCRIPT'
@@ -97,13 +87,12 @@ fi
 SCRIPT
 chmod +x /usr/local/bin/update-proxy.sh
 
-# Tambah cron kalau belum ada
 if ! crontab -l 2>/dev/null | grep -q "update-proxy"; then
   (crontab -l 2>/dev/null; echo "0 */12 * * * /usr/local/bin/update-proxy.sh") | crontab -
 fi
 echo "OK: Cron set."
 
-# Step 6: Start Nikki
+# Start Nikki
 echo ""
 echo ">>> Start Nikki..."
 /etc/init.d/nikki restart 2>/dev/null
@@ -124,11 +113,12 @@ else
   echo "❌ API: GAGAL"
 fi
 
+LAN_IP=$(ip -4 addr show br-lan 2>/dev/null | grep inet | awk '{print $2}' | cut -d/ -f1)
 echo ""
 echo "=== Selesai! ==="
 echo ""
-echo "Dashboard: http://$(ip -4 addr show br-lan 2>/dev/null | grep inet | awk '{print $2}' | cut -d/ -f1 || echo 'IP-LAN'):9090/ui/?secret=hijinet"
-echo "LuCI:      http://$(ip -4 addr show br-lan 2>/dev/null | grep inet | awk '{print $2}' | cut -d/ -f1 || echo 'IP-LAN')/cgi-bin/luci"
+echo "Dashboard: http://${LAN_IP}:9090/ui/?secret=hijinet"
+echo "LuCI:      http://${LAN_IP}/cgi-bin/luci"
 echo ""
-echo "Ganti password Nikki: uci set nikki.mixin.api_secret='password-baru' && uci commit nikki"
-echo "Ganti GLOBAL group: buka dashboard → GLOBAL → pilih PROXY-FREE / PROXY-WARP"
+echo "Ganti password: uci set nikki.mixin.api_secret='password-baru' && uci commit nikki"
+echo "Ganti GLOBAL:   buka dashboard → GLOBAL → pilih PROXY-FREE / PROXY-WARP"
