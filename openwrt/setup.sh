@@ -44,15 +44,14 @@ iptables -t nat -C PREROUTING -p udp --dport 53 -j REDIRECT --to-ports 1053 2>/d
 # Update script: download proxy list + base config, restart nikki
 cat > /usr/local/bin/update-proxy.sh << 'EOF'
 #!/bin/sh
-PROXY_URL="https://raw.githubusercontent.com/rickicode/free-proxy-singbox/main/output/live-proxies.mihomo.yml"
-BASE_URL="https://raw.githubusercontent.com/rickicode/free-proxy-singbox/main/openwrt/base.yml"
+BASE_URL="https://raw.githubusercontent.com/rickicode/free-proxy-singbox/refs/heads/main"
 CHANGED=0
-curl -sL --max-time 60 "$PROXY_URL" -o /etc/nikki/profiles/free-proxies.yml.tmp 2>/dev/null
-if head -1 /etc/nikki/profiles/free-proxies.yml.tmp | grep -q "Auto-generated"; then
-  mv /etc/nikki/profiles/free-proxies.yml.tmp /etc/nikki/profiles/free-proxies.yml
+curl -sL --max-time 60 "$BASE_URL/output/live-proxies.mihomo.yml" -o /etc/nikki/run/providers/free-proxies.yml.tmp 2>/dev/null
+if head -1 /etc/nikki/run/providers/free-proxies.yml.tmp | grep -q "Auto-generated"; then
+  mv /etc/nikki/run/providers/free-proxies.yml.tmp /etc/nikki/run/providers/free-proxies.yml
   CHANGED=1
-else rm -f /etc/nikki/profiles/free-proxies.yml.tmp; fi
-curl -sL --max-time 60 "$BASE_URL" -o /etc/nikki/mixin.yaml.tmp 2>/dev/null
+else rm -f /etc/nikki/run/providers/free-proxies.yml.tmp; fi
+curl -sL --max-time 60 "$BASE_URL/openwrt/base.yml" -o /etc/nikki/mixin.yaml.tmp 2>/dev/null
 if head -1 /etc/nikki/mixin.yaml.tmp | grep -q "Base config"; then
   mv /etc/nikki/mixin.yaml.tmp /etc/nikki/mixin.yaml
   CHANGED=1
