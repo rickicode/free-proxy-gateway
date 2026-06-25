@@ -327,7 +327,6 @@ def build_mihomo(data: dict) -> str:
     proxy_groups.append({"name": "GOOGLE", "type": "select", "proxies": ["DIRECT"] + [g["name"] for g in proxy_groups]})
     proxy_groups.append({"name": "AI", "type": "select", "proxies": ["DIRECT"] + [g["name"] for g in proxy_groups]})
     proxy_groups.append({"name": "CHECK-IP", "type": "select", "proxies": ["PROXY-FREE"] + [g["name"] for g in proxy_groups]})
-    proxy_groups.append({"name": "SPEEDTEST", "type": "select", "proxies": ["DIRECT"] + [g["name"] for g in proxy_groups]})
     proxy_groups.append({"name": "SOCIAL", "type": "select", "proxies": ["DIRECT"] + [g["name"] for g in proxy_groups]})
 
     # GLOBAL
@@ -436,17 +435,6 @@ def build_mihomo(data: dict) -> str:
     for rule in CHECK_IP_RULES:
         lines.append(f"  - {rule}")
 
-    # Speedtest → SPEEDTEST group
-    lines.append("  - DOMAIN-SUFFIX,speedtest.net,SPEEDTEST")
-    lines.append("  - DOMAIN-SUFFIX,speedtest.cn,SPEEDTEST")
-    lines.append("  - DOMAIN,fast.com,SPEEDTEST")
-    lines.append("  - DOMAIN-SUFFIX,fast.com,SPEEDTEST")
-    lines.append("  - DOMAIN,speed.cloudflare.com,SPEEDTEST")
-    lines.append("  - DOMAIN-SUFFIX,nperf.com,SPEEDTEST")
-    lines.append("  - DOMAIN-SUFFIX,speedof.me,SPEEDTEST")
-    lines.append("  - DOMAIN-SUFFIX,testmy.net,SPEEDTEST")
-    lines.append("  - DOMAIN-SUFFIX,speedtestcustom.com,SPEEDTEST")
-    lines.append("  - DOMAIN-SUFFIX,bandwidthplace.com,SPEEDTEST")
 
     # Social Media → SOCIAL group
     lines.append("  - GEOSITE,telegram,SOCIAL")
