@@ -327,7 +327,7 @@ def build_mihomo(data: dict) -> str:
     # Dedicated groups
     proxy_groups.append({"name": "GOOGLE", "type": "select", "proxies": ["DIRECT"] + [g["name"] for g in proxy_groups]})
     proxy_groups.append({"name": "AI", "type": "select", "proxies": ["DIRECT"] + [g["name"] for g in proxy_groups]})
-    proxy_groups.append({"name": "CHECK-IP", "type": "select", "proxies": ["DIRECT", "PROXY-FREE"] + [g["name"] for g in proxy_groups]})
+    proxy_groups.append({"name": "CHECK-IP", "type": "select", "proxies": ["DIRECT"] + [g["name"] for g in proxy_groups]})
     proxy_groups.append({"name": "SOCIAL", "type": "select", "proxies": ["DIRECT"] + [g["name"] for g in proxy_groups]})
 
     # HIJINETWORK = catch-all group for traffic not matched by rules
