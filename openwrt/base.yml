@@ -14,6 +14,25 @@ proxies:
     type: direct
     interface-name: eth1
 
+# Public proxy inbound listeners
+inbound:
+  - name: PUB-WAN
+    type: mixed
+    port: 1010
+    proxy: PUB-WAN
+  - name: PUB-FREE
+    type: mixed
+    port: 1011
+    proxy: PUB-FREE
+  - name: PUB-ASIA
+    type: mixed
+    port: 1012
+    proxy: PUB-ASIA
+  - name: PUB-WARP
+    type: mixed
+    port: 1013
+    proxy: PUB-WARP
+
 dns:
   enable: true
   listen: :1053
@@ -61,6 +80,58 @@ proxy-groups:
       - WAN2
     url: http://www.gstatic.com/generate_204
     interval: 300
+
+  # ── PUBLIC PROXY ───────────────────────────────
+  - name: PUB-WAN
+    type: select
+    proxies:
+      - WAN2
+      - DIRECT
+      - WAN-AUTO
+      - PROXY-FREE
+      - PROXY-ID
+      - PROXY-SG
+      - PROXY-US
+      - PROXY-ASIA
+      - PROXY-EU
+      - PROXY-WARP
+
+  - name: PUB-FREE
+    type: select
+    proxies:
+      - PROXY-FREE
+      - PROXY-ID
+      - PROXY-SG
+      - PROXY-US
+      - PROXY-ASIA
+      - PROXY-EU
+      - WAN2
+      - DIRECT
+      - PROXY-WARP
+
+  - name: PUB-ASIA
+    type: select
+    proxies:
+      - PROXY-ASIA
+      - PROXY-ID
+      - PROXY-SG
+      - PROXY-FREE
+      - PROXY-US
+      - PROXY-EU
+      - WAN2
+      - DIRECT
+      - PROXY-WARP
+
+  - name: PUB-WARP
+    type: select
+    proxies:
+      - WARP-LB
+      - WARP-1
+      - WARP-2
+      - WARP-3
+      - DIRECT
+      - PROXY-FREE
+      - PROXY-ASIA
 
   # ── GLOBAL ─────────────────────────────────────
   - name: GLOBAL
