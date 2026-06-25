@@ -456,7 +456,7 @@ def build_mihomo(data: dict) -> str:
     lines.append("  - GEOSITE,netflix,PROXY-FREE")
 
     # Fallback
-    lines.append("  - MATCH,PROXY-FREE")
+    lines.append("  - MATCH,GLOBAL")
 
     lines.append("")
     return "\n".join(lines)
