@@ -50,7 +50,7 @@ proxy-groups:
   - name: BLOCKED
     type: select
     proxies:
-      - AD-BLOCK
+      - REJECT
       - DIRECT
       - GLOBAL
       - PROXY-FREE
