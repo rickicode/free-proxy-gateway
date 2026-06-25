@@ -27,7 +27,7 @@ dns:
 proxy-providers:
   warp:
     type: file
-    path: /etc/nikki/profiles/warp.yml
+    path: /etc/nikki/run/providers/warp.yml
     health-check:
       enable: true
       url: http://www.gstatic.com/generate_204
@@ -35,7 +35,7 @@ proxy-providers:
 
   free:
     type: file
-    path: /etc/nikki/profiles/free-proxies.yml
+    path: /etc/nikki/run/providers/free-proxies.yml
     health-check:
       enable: true
       url: http://www.gstatic.com/generate_204
