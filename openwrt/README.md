@@ -17,13 +17,14 @@ Setup OpenWrt router sebagai proxy gateway pakai **Nikki** (mihomo engine).
 Client (192.168.x.x)
     ↓
 OpenWrt Gateway (Nikki + Mihomo)
-    ├── mixin.yaml (base config: DNS, rules, ports) ← jarang berubah
-    ├── free-proxy-singbox.yml (proxy list + groups)  ← auto-update tiap 12 jam
-    └── Nikki merge keduanya → runtime config
+    ├── mixin.yaml (base config: DNS, rules, ports) ← dari repo
+    ├── warp.yml (WARP proxies, per-device)          ← generate lokal
+    ├── free-proxy-singbox.yml (free proxies)         ← dari repo
+    └── Nikki merge ketiganya → runtime config
     ├── DIRECT (default)
     ├── GLOBAL (catch-all)
     ├── PROXY-FREE (auto-select free proxy)
-    ├── PROXY-WARP (Cloudflare WARP, via mixin)
+    ├── PROXY-WARP (Cloudflare WARP, per-device keys)
     ├── AI group (OpenAI, Claude, dll)
     ├── GOOGLE group
     ├── CHECK-IP group
@@ -31,10 +32,13 @@ OpenWrt Gateway (Nikki + Mihomo)
 ```
 
 **Split config:**
-| File | Isi | Update |
-|---|---|---|
-| `openwrt/base.yml` → `/etc/nikki/mixin.yaml` | DNS, ports, rules, group definitions | Manual / jarang |
-| `output/live-proxies.mihomo.yml` → `/etc/nikki/profiles/free-proxy-singbox.yml` | Proxies + proxy-groups | Auto tiap 12 jam |
+| File | Isi | Source | Update |
+|---|---|---|---|
+| `mixin.yaml` | DNS, ports, rules, group definitions | Repo | Auto tiap 12 jam |
+| `warp.yml` | 3 WARP accounts (WireGuard keys) | **Per-device** | Auto tiap 2 hari |
+| `free-proxy-singbox.yml` | Free proxy list + groups | Repo | Auto tiap 12 jam |
+
+**Privasi:** WARP keys di-generate per-device via wgcf, tidak pernah di-commit ke repo.
 
 ## Quick Start (1 Command)
 
@@ -45,10 +49,11 @@ wget -O setup.sh https://raw.githubusercontent.com/rickicode/free-proxy-singbox/
 Script ini akan:
 1. Download `base.yml` → `/etc/nikki/mixin.yaml`
 2. Download proxy list → `/etc/nikki/profiles/free-proxy-singbox.yml`
-3. Konfigurasi Nikki via UCI
-4. Setup firewall DNS redirect
-5. Install cron auto-update tiap 12 jam
-6. Start Nikki
+3. Install wgcf + generate 3 WARP accounts → `/etc/nikki/profiles/warp.yml`
+4. Konfigurasi Nikki via UCI
+5. Setup firewall DNS redirect
+6. Install cron auto-update (proxy tiap 12 jam, WARP tiap 2 hari)
+7. Start Nikki
 
 ## Manual Install
 
@@ -74,7 +79,17 @@ wget -O /etc/nikki/profiles/free-proxy-singbox.yml \
   https://raw.githubusercontent.com/rickicode/free-proxy-singbox/main/output/live-proxies.mihomo.yml
 ```
 
-### 4. Konfigurasi Nikki via UCI
+### 4. Generate WARP accounts (per-device)
+
+```bash
+wget -O /etc/nikki/warp-setup.sh \
+  https://raw.githubusercontent.com/rickicode/free-proxy-singbox/main/openwrt/warp-setup.sh
+ash /etc/nikki/warp-setup.sh
+```
+
+Ini generate 3 akun WARP via wgcf. Keys disimpan lokal di `/etc/nikki/warp-creds.json`, tidak pernah di-commit ke repo.
+
+### 5. Konfigurasi Nikki via UCI
 
 ```bash
 uci set nikki.config.profile="file:free-proxy-singbox.yml"
@@ -88,22 +103,23 @@ uci set nikki.mixin.api_secret="ganti-password"
 uci commit nikki
 ```
 
-### 5. Firewall
+### 6. Firewall
 
 ```bash
 iptables -t nat -A PREROUTING -p tcp --dport 53 -j REDIRECT --to-ports 1053
 iptables -t nat -A PREROUTING -p udp --dport 53 -j REDIRECT --to-ports 1053
 ```
 
-### 6. Start
+### 7. Start
 
 ```bash
 /etc/init.d/nikki restart
 ```
 
-### 7. Auto-update (cron)
+### 8. Auto-update (cron)
 
 ```bash
+# Proxy list update (tiap 12 jam)
 cat > /usr/local/bin/update-proxy.sh << 'EOF'
 #!/bin/sh
 PROXY_URL="https://raw.githubusercontent.com/rickicode/free-proxy-singbox/main/output/live-proxies.mihomo.yml"
@@ -134,7 +150,44 @@ if [ "$CHANGED" = "1" ]; then
 fi
 EOF
 chmod +x /usr/local/bin/update-proxy.sh
-echo "0 */12 * * * /usr/local/bin/update-proxy.sh" | crontab -
+
+# WARP refresh (tiap 2 hari)
+cat > /usr/local/bin/warp-refresh.sh << 'EOF'
+#!/bin/sh
+WARP_FILE="/etc/nikki/profiles/warp.yml"
+CRED_FILE="/etc/nikki/warp-creds.json"
+if [ ! -f "$CRED_FILE" ]; then
+  ash /etc/nikki/warp-setup.sh
+  /etc/init.d/nikki restart 2>/dev/null
+  echo "[$(date)] WARP: initial setup" >> /var/log/proxy-update.log
+  exit 0
+fi
+
+last=$(python3 -c "
+import json, time
+creds = json.load(open('$CRED_FILE'))
+times = [v.get('refreshed_at','') for v in creds.values() if v.get('refreshed_at')]
+if times:
+    t = time.mktime(time.strptime(max(times), '%Y-%m-%dT%H:%M:%SZ'))
+    print(f'{(time.time()-t)/86400:.1f}')
+else:
+    print('99')
+" 2>/dev/null || echo "99")
+
+if [ "$(echo "$last < 1.5" | bc -l 2>/dev/null || echo 0)" = "1" ]; then
+  echo "[$(date)] WARP: still fresh ($last days)" >> /var/log/proxy-update.log
+  exit 0
+fi
+
+ash /etc/nikki/warp-setup.sh
+/etc/init.d/nikki restart 2>/dev/null
+echo "[$(date)] WARP: refreshed" >> /var/log/proxy-update.log
+EOF
+chmod +x /usr/local/bin/warp-refresh.sh
+
+(crontab -l 2>/dev/null | grep -v update-proxy | grep -v warp-refresh; \
+ echo "0 */12 * * * /usr/local/bin/update-proxy.sh"; \
+ echo "0 3 */2 * * /usr/local/bin/warp-refresh.sh") | crontab -
 ```
 
 ## Dashboard
@@ -152,7 +205,8 @@ http://<router-ip>:9090
 | PROXY-ID | url-test | proxy Indonesia |
 | PROXY-SG | url-test | proxy Singapore |
 | PROXY-US | url-test | proxy US |
-| PROXY-WARP | select | Cloudflare WARP (via mixin) |
+| PROXY-WARP | select | Cloudflare WARP (per-device) |
+| WARP-LB | load-balance | 3 WARP accounts (auto-select fastest) |
 | GOOGLE | select | DIRECT + semua group |
 | AI | select | DIRECT + semua group |
 | CHECK-IP | select | DIRECT + semua group |
@@ -185,8 +239,11 @@ uci show nikki.proxy | grep dns
 # Restart
 /etc/init.d/nikki restart
 
-# Update manual
+# Update proxy manual
 /usr/local/bin/update-proxy.sh
+
+# Refresh WARP manual
+/usr/local/bin/warp-refresh.sh
 ```
 
 ## File Structure
@@ -194,7 +251,14 @@ uci show nikki.proxy | grep dns
 ```
 /etc/nikki/
 ├── mixin.yaml                          ← base config (DNS, rules, ports)
+├── warp-setup.sh                       ← WARP account generator
+├── warp-creds.json                     ← WARP keys (local only, never committed)
 ├── profiles/
-│   └── free-proxy-singbox.yml          ← proxy list + groups (auto-update)
+│   ├── free-proxy-singbox.yml          ← proxy list + groups (auto-update)
+│   └── warp.yml                        ← WARP proxies (per-device, auto-refresh)
 └── ...
+
+/usr/local/bin/
+├── update-proxy.sh                     ← update proxy list + base config
+└── warp-refresh.sh                     ← refresh WARP accounts (tiap 2 hari)
 ```

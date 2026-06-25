@@ -1,34 +1,54 @@
 #!/usr/bin/env python3
-"""
-/opt/warp-refresh.py
-Re-register WARP1 + WARP2 accounts via wgcf dan update sing-box config.
-Jadwal: cron tiap 2 hari (0 */48 * * *)
+"""Register 3 WARP accounts via wgcf and output mihomo-format YAML.
 
 Flow:
-  1. wgcf generate → keypair baru
+  1. wgcf generate → keypair
   2. wgcf register --accept-tos → daftar ke Cloudflare
-  3. wgcf generate → dapatkan WireGuard config
-  4. Parse private_key + addresses
-  5. Update endpoint di /etc/sing-box/config.json
-  6. Restart sing-box
-"""
-import json, subprocess, os, sys, time, re, tempfile
+  3. Parse private_key + addresses
+  4. Output output/warp.mihomo.yml (WARP proxies in mihomo format)
+  5. Save output/warp-creds.json (credentials backup)
 
-CONFIG    = "/etc/sing-box/config.json"
-CRED_FILE = "/opt/warp-creds.json"
-SINGBOX   = "/usr/local/bin/sing-box"
-WGCF      = "/usr/local/bin/wgcf"
+Usage:
+  python3 scripts/warp-refresh.py [--force]
+  python3 scripts/warp-refresh.py --count 3
 
-def info(msg):  print(f"  \033[36m→\033[0m {msg}")
-def ok(msg):    print(f"  \033[32m✓\033[0m {msg}")
-def fail(msg):  print(f"  \033[31m✗\033[0m {msg}")
+Schedule: GitHub Actions setiap 2 hari, atau cron lokal."""
+
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+
+CRED_FILE = "output/warp-creds.json"
+OUTPUT_FILE = "output/warp.mihomo.yml"
+WGCF = "/usr/local/bin/wgcf"
+COUNT = 3
+PUBLIC_KEY = "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo="
+ENDPOINT = "engage.cloudflareclient.com"
+ENDPOINT_PORT = 2408
+
+
+def info(msg):
+    print(f"  → {msg}")
+
+
+def ok(msg):
+    print(f"  ✓ {msg}")
+
+
+def fail(msg):
+    print(f"  ✗ {msg}")
+
 
 def run(cmd, **kw):
     return subprocess.run(cmd, capture_output=True, text=True, **kw)
 
 
 def ensure_wgcf():
-    """Download wgcf binary if not found."""
     if os.path.exists(WGCF):
         return
     info("Downloading wgcf...")
@@ -48,16 +68,14 @@ def ensure_wgcf():
         sys.exit(1)
 
 
-def register_via_wgcf():
-    """Daftar WARP baru via wgcf. Return (privkey, addr_v4, addr_v6, client_id)."""
+def register_warp():
+    """Register satu akun WARP. Return dict atau (None, error_msg)."""
     work = tempfile.mkdtemp(prefix="warp-")
     try:
-        # Generate keypair
         r = run([WGCF, "generate"], cwd=work)
         if r.returncode != 0:
             return None, f"generate failed: {r.stderr.strip()[:100]}"
 
-        # Register (non-interactive)
         r = run([WGCF, "register", "--accept-tos"], cwd=work)
         if r.returncode != 0:
             err = r.stderr.strip()
@@ -65,12 +83,10 @@ def register_via_wgcf():
                 return None, "RATE_LIMITED"
             return None, f"register failed: {err[:100]}"
 
-        # Generate config
         r = run([WGCF, "generate"], cwd=work)
         if r.returncode != 0:
             return None, f"config generate failed: {r.stderr.strip()[:100]}"
 
-        # Baca account file untuk client_id
         account = {}
         acct_file = os.path.join(work, "wgcf-account.toml")
         if os.path.exists(acct_file):
@@ -79,7 +95,6 @@ def register_via_wgcf():
                     if "device_id" in line:
                         account["id"] = line.split("=")[-1].strip().strip('"')
 
-        # Parse config
         conf_file = os.path.join(work, "wgcf-profile.conf")
         if not os.path.exists(conf_file):
             return None, "wgcf-profile.conf not found"
@@ -93,18 +108,13 @@ def register_via_wgcf():
             return None, "cannot parse wgcf config"
 
         addrs = addr.group(1).split(",")
-        addr_v4 = addrs[0].strip()
-        addr_v6 = addrs[1].strip() if len(addrs) > 1 else ""
-
         return {
             "private_key": priv.group(1),
-            "address_v4": addr_v4,
-            "address_v6": addr_v6,
+            "address_v4": addrs[0].strip(),
+            "address_v6": addrs[1].strip() if len(addrs) > 1 else "",
             "client_id": account.get("id", ""),
         }, None
     finally:
-        # Bersihkan temp
-        import shutil
         shutil.rmtree(work, ignore_errors=True)
 
 
@@ -113,88 +123,89 @@ def load_creds():
         try:
             with open(CRED_FILE) as f:
                 return json.load(f)
-        except: pass
+        except Exception:
+            pass
     return {}
 
+
 def save_creds(creds):
+    os.makedirs(os.path.dirname(CRED_FILE), exist_ok=True)
     with open(CRED_FILE, "w") as f:
         json.dump(creds, f, indent=2)
 
 
-def refresh_warp(label, ep_tag):
-    """Refresh satu akun WARP."""
-    info(f"Registering {label} ({ep_tag})...")
+def build_warp_yaml(creds):
+    """Generate mihomo YAML for WARP proxies + groups."""
+    lines = [
+        "# Auto-generated WARP proxies",
+        "# Source: https://github.com/rickicode/free-proxy-singbox",
+        f"# Generated: {time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}",
+        "",
+        "proxies:",
+    ]
 
-    result, err = register_via_wgcf()
-    if err == "RATE_LIMITED":
-        fail(f"Rate limited — coba lagi nanti")
-        return False
-    if err:
-        fail(f"{err}")
-        return False
-    if not result:
-        fail(f"Gagal register")
-        return False
+    for i in range(1, COUNT + 1):
+        label = f"WARP{i}"
+        d = creds.get(label, {})
+        if not d.get("private_key"):
+            continue
+        lines.append(f"  - name: {label}")
+        lines.append(f"    type: wireguard")
+        lines.append(f"    server: {ENDPOINT}")
+        lines.append(f"    port: {ENDPOINT_PORT}")
+        lines.append(f"    private-key: {d['private_key']}")
+        lines.append(f"    public-key: {PUBLIC_KEY}")
+        lines.append(f"    ip: {d.get('address_v4', '172.16.0.2')}")
+        if d.get("address_v6"):
+            lines.append(f"    ipv6: \"{d['address_v6']}\"")
+        lines.append(f"    allowed-ips:")
+        lines.append(f"      - 0.0.0.0/0")
+        lines.append(f"    udp: true")
+        lines.append(f"    mtu: 1280")
+        lines.append("")
 
-    ok(f"{result['address_v4']} / {result['address_v6'][:30]}...")
+    # WARP groups
+    warp_names = [f"WARP{i}" for i in range(1, COUNT + 1) if creds.get(f"WARP{i}", {}).get("private_key")]
+    if not warp_names:
+        return ""
 
-    # Update config
-    with open(CONFIG) as f:
-        c = json.load(f)
+    lines.append("proxy-groups:")
+    # Load-balance group
+    lines.append(f"  - name: WARP-LB")
+    lines.append(f"    type: load-balance")
+    lines.append(f"    proxies:")
+    for name in warp_names:
+        lines.append(f"      - {name}")
+    lines.append(f"    url: http://www.gstatic.com/generate_204")
+    lines.append(f"    interval: 300")
+    lines.append("")
+    # Select group
+    lines.append(f"  - name: PROXY-WARP")
+    lines.append(f"    type: select")
+    lines.append(f"    proxies:")
+    lines.append(f"      - WARP-LB")
+    for name in warp_names:
+        lines.append(f"      - {name}")
+    lines.append(f"      - DIRECT")
+    lines.append("")
 
-    found = False
-    for ep in c.get("endpoints", []):
-        if ep["tag"] == ep_tag:
-            ep["private_key"] = result["private_key"]
-            ep["address"] = [result["address_v4"], result["address_v6"]]
-            found = True
-            break
-
-    if not found:
-        fail(f"Endpoint {ep_tag} tidak ditemukan di config")
-        return False
-
-    with open(CONFIG, "w") as f:
-        json.dump(c, f, indent=2)
-
-    # Simpan credential
-    creds = load_creds()
-    creds[label] = {
-        "private_key": result["private_key"],
-        "address_v4": result["address_v4"],
-        "address_v6": result["address_v6"],
-        "client_id": result.get("client_id", ""),
-        "refreshed_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-    }
-    save_creds(creds)
-    return True
-
-
-def ensure_deps():
-    """Install dependencies: wireguard-tools (wg) + wgcf binary."""
-    # wireguard-tools for wg genkey/wg pubkey
-    r = run(["which", "wg"])
-    if r.returncode != 0:
-        info("Installing wireguard-tools...")
-        run(["apt-get", "install", "-y", "-qq", "wireguard-tools"])
-        ok("wireguard-tools installed")
-    # wgcf binary
-    ensure_wgcf()
+    return "\n".join(lines)
 
 
 def main():
     force = "--force" in sys.argv
-    print(f"\n  \033[1mWARP Refresh\033[0m")
-    print(f"  {time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())}")
+    print(f"\nWARP Refresh")
+    print(f"{time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())}")
+    print(f"Registering {COUNT} accounts\n")
 
-    ensure_deps()
+    ensure_wgcf()
 
-    # Freshness check
     creds = load_creds()
-    w1_ok = w2_ok = False
+    need_refresh = []
 
-    if not force and creds:
-        for label, ep in [("WARP1", "warp-ep"), ("WARP2", "warp2-ep")]:
+    for i in range(1, COUNT + 1):
+        label = f"WARP{i}"
+        if not force:
             last = creds.get(label, {}).get("refreshed_at", "")
             if last:
                 try:
@@ -202,45 +213,65 @@ def main():
                     days = (time.time() - t) / 86400
                     if days < 2:
                         ok(f"{label} masih fresh ({days:.1f} hari)")
-                        if label == "WARP1": w1_ok = True
-                        else: w2_ok = True
-                except: pass
+                        continue
+                except Exception:
+                    pass
+        need_refresh.append(label)
 
-    if w1_ok and w2_ok:
-        print(f"  \033[33m→\033[0m Kedua WARP masih fresh. Gunakan --force untuk paksa refresh.\n")
-        return
+    if not need_refresh:
+        print(f"\nSemua WARP masih fresh. Gunakan --force untuk paksa refresh.\n")
+    else:
+        rate_limited = False
+        for label in need_refresh:
+            print()
+            info(f"Registering {label}...")
+            result, err = register_warp()
+            if err == "RATE_LIMITED":
+                fail(f"{label}: Rate limited — coba lagi nanti")
+                rate_limited = True
+                time.sleep(5)
+                continue
+            if err:
+                fail(f"{label}: {err}")
+                continue
+            if not result:
+                fail(f"{label}: Gagal register")
+                continue
 
-    rate_limited = False
-    for label, ep in [("WARP1", "warp-ep"), ("WARP2", "warp2-ep")]:
-        ok_flag = w1_ok if label == "WARP1" else w2_ok
-        if ok_flag:
-            continue
-        print()
-        if not refresh_warp(label, ep):
-            rate_limited = True
-        time.sleep(2)
+            ok(f"{label}: {result['address_v4']} / {result['address_v6'][:30]}...")
+            creds[label] = {
+                "private_key": result["private_key"],
+                "address_v4": result["address_v4"],
+                "address_v6": result["address_v6"],
+                "client_id": result.get("client_id", ""),
+                "refreshed_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            }
+            save_creds(creds)
+            time.sleep(2)
 
-    # Validate + restart
-    print()
-    r = run([SINGBOX, "check", "-c", CONFIG])
-    if r.returncode != 0:
-        fail(f"Config error: {r.stdout.strip()}")
+        if rate_limited:
+            print(f"\n⚠ Beberapa akun kena rate limit. Akan dicoba lagi nanti.\n")
+
+    # Generate mihomo YAML
+    yaml_content = build_warp_yaml(creds)
+    if yaml_content:
+        os.makedirs(os.path.dirname(OUTPUT_FILE), exist_ok=True)
+        with open(OUTPUT_FILE, "w") as f:
+            f.write(yaml_content)
+        ok(f"Written {OUTPUT_FILE} ({yaml_content.count(chr(10))} lines)")
+    else:
+        fail("No valid WARP credentials — skip YAML generation")
         sys.exit(1)
 
-    run(["systemctl", "restart", "sing-box"])
-    time.sleep(2)
-    s = run(["systemctl", "is-active", "sing-box"]).stdout.strip()
-    ok(f"sing-box: {s}")
-
-    # Tampilkan hasil
-    creds = load_creds()
-    for label in ["WARP1", "WARP2"]:
+    # Summary
+    print(f"\nWARP credentials:")
+    for i in range(1, COUNT + 1):
+        label = f"WARP{i}"
         d = creds.get(label, {})
         if d:
-            print(f"  {label}: {d.get('address_v4','')} / {d.get('address_v6','')[:30]}...")
-
-    if rate_limited:
-        print(f"\n  \033[33m⚠\033[0m Beberapa akun kena rate limit. Akan dicoba lagi di cron berikutnya.\n")
+            print(f"  {label}: {d.get('address_v4', '?')} (refreshed: {d.get('refreshed_at', '?')})")
+        else:
+            print(f"  {label}: not registered")
 
 
 if __name__ == "__main__":

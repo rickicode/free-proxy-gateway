@@ -1,6 +1,6 @@
 # Base config for Nikki (mixin)
 # Fixed settings: ports, DNS, rules, static groups
-# Proxy list comes from profile (live-proxies.mihomo.yml)
+# Proxies come from profiles: warp.yml (local) + live-proxies.mihomo.yml (repo)
 
 mixed-port: 7890
 allow-lan: true

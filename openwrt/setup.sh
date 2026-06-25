@@ -1,11 +1,12 @@
 #!/bin/sh
-# OpenWrt Gateway Setup — Nikki + Mihomo
+# OpenWrt Gateway Setup — Nikki + Mihomo + WARP
 # Usage: wget -O setup.sh https://raw.githubusercontent.com/rickicode/free-proxy-singbox/main/openwrt/setup.sh && ash setup.sh
 set -e
 
 REPO="https://raw.githubusercontent.com/rickicode/free-proxy-singbox/main"
 BASE_URL="$REPO/openwrt/base.yml"
 PROXY_URL="$REPO/output/live-proxies.mihomo.yml"
+WARP_SETUP_URL="$REPO/openwrt/warp-setup.sh"
 PROFILE_NAME="free-proxy-singbox.yml"
 
 echo "=== OpenWrt Gateway Setup ==="
@@ -26,7 +27,7 @@ if ! command -v nikki >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "[1/5] Download base config (mixin)..."
+echo "[1/6] Download base config (mixin)..."
 wget -O /etc/nikki/mixin.yaml "$BASE_URL" 2>/dev/null
 if head -1 /etc/nikki/mixin.yaml | grep -q "Base config"; then
   echo "  OK: $(wc -l < /etc/nikki/mixin.yaml) lines"
@@ -35,7 +36,7 @@ else
   exit 1
 fi
 
-echo "[2/5] Download proxy list..."
+echo "[2/6] Download proxy list..."
 mkdir -p /etc/nikki/profiles
 wget -O "/etc/nikki/profiles/$PROFILE_NAME" "$PROXY_URL" 2>/dev/null
 if head -1 "/etc/nikki/profiles/$PROFILE_NAME" | grep -q "Auto-generated"; then
@@ -45,7 +46,27 @@ else
   exit 1
 fi
 
-echo "[3/5] Konfigurasi Nikki..."
+echo "[3/6] Install wgcf (for WARP)..."
+if ! command -v wgcf >/dev/null 2>&1; then
+  arch=$(uname -m)
+  case "$arch" in
+    x86_64|amd64) a="amd64" ;;
+    aarch64|arm64) a="arm64" ;;
+    *) a="amd64" ;;
+  esac
+  wget -qO /usr/local/bin/wgcf "https://github.com/ViRb3/wgcf/releases/latest/download/wgcf_${a}"
+  chmod +x /usr/local/bin/wgcf
+  echo "  OK: wgcf ($a)"
+else
+  echo "  OK: wgcf sudah ada"
+fi
+
+echo "[4/6] Generate WARP accounts (per-device)..."
+wget -O /etc/nikki/warp-setup.sh "$WARP_SETUP_URL" 2>/dev/null
+chmod +x /etc/nikki/warp-setup.sh
+ash /etc/nikki/warp-setup.sh
+
+echo "[5/6] Konfigurasi Nikki..."
 uci set nikki.config.profile="file:$PROFILE_NAME"
 uci set nikki.config.enabled=1
 uci set nikki.proxy.tcp_mode=tproxy
@@ -56,16 +77,15 @@ uci set nikki.mixin.api_listen="[::]:9090"
 uci set nikki.mixin.api_secret="ganti-password"
 uci commit nikki
 
-echo "[4/5] Firewall..."
+echo "[6/6] Firewall + Auto-update..."
+# DNS redirect
 if ! iptables -t nat -C PREROUTING -p tcp --dport 53 -j REDIRECT --to-ports 1053 2>/dev/null; then
   iptables -t nat -A PREROUTING -p tcp --dport 53 -j REDIRECT --to-ports 1053
   iptables -t nat -A PREROUTING -p udp --dport 53 -j REDIRECT --to-ports 1053
-  echo "  OK: DNS redirect ditambahkan"
-else
-  echo "  OK: DNS redirect sudah ada"
+  echo "  DNS redirect: OK"
 fi
 
-echo "[5/5] Auto-update cron (tiap 12 jam)..."
+# Auto-update script
 cat > /usr/local/bin/update-proxy.sh << 'CRON'
 #!/bin/sh
 PROXY_URL="https://raw.githubusercontent.com/rickicode/free-proxy-singbox/main/output/live-proxies.mihomo.yml"
@@ -101,8 +121,45 @@ fi
 CRON
 chmod +x /usr/local/bin/update-proxy.sh
 
-(crontab -l 2>/dev/null | grep -v update-proxy; echo "0 */12 * * * /usr/local/bin/update-proxy.sh") | crontab -
-echo "  OK: cron terpasang"
+# WARP refresh cron (tiap 2 hari)
+cat > /usr/local/bin/warp-refresh.sh << 'WARPCRON'
+#!/bin/sh
+WARP_FILE="/etc/nikki/profiles/warp.yml"
+CRED_FILE="/etc/nikki/warp-creds.json"
+if [ ! -f "$CRED_FILE" ]; then
+  ash /etc/nikki/warp-setup.sh
+  /etc/init.d/nikki restart 2>/dev/null
+  echo "[$(date)] WARP: initial setup" >> /var/log/proxy-update.log
+  exit 0
+fi
+
+# Check freshness (2 days)
+last=$(python3 -c "
+import json, time
+creds = json.load(open('$CRED_FILE'))
+times = [v.get('refreshed_at','') for v in creds.values() if v.get('refreshed_at')]
+if times:
+    t = time.mktime(time.strptime(max(times), '%Y-%m-%dT%H:%M:%SZ'))
+    print(f'{(time.time()-t)/86400:.1f}')
+else:
+    print('99')
+" 2>/dev/null || echo "99")
+
+if [ "$(echo "$last < 1.5" | bc -l 2>/dev/null || echo 0)" = "1" ]; then
+  echo "[$(date)] WARP: still fresh ($last days)" >> /var/log/proxy-update.log
+  exit 0
+fi
+
+ash /etc/nikki/warp-setup.sh
+/etc/init.d/nikki restart 2>/dev/null
+echo "[$(date)] WARP: refreshed" >> /var/log/proxy-update.log
+WARPCRON
+chmod +x /usr/local/bin/warp-refresh.sh
+
+(crontab -l 2>/dev/null | grep -v update-proxy | grep -v warp-refresh; \
+ echo "0 */12 * * * /usr/local/bin/update-proxy.sh"; \
+ echo "0 3 */2 * * /usr/local/bin/warp-refresh.sh") | crontab -
+echo "  Cron: OK"
 
 echo ""
 echo "=== Start Nikki ==="
@@ -116,15 +173,13 @@ if pgrep -x nikki >/dev/null 2>&1 || pgrep -x mihomo >/dev/null 2>&1; then
 else
   echo "  Nikki: NOT RUNNING — cek log: tail -20 /var/log/nikki/app.log"
 fi
-if ss -tlnp | grep -q 7890; then
-  echo "  Port 7890 (mixed): OK"
-fi
-if ss -tlnp | grep -q 9090; then
-  echo "  Port 9090 (API): OK"
+if curl -s --max-time 3 http://127.0.0.1:9090 -o /dev/null -w "%{http_code}" | grep -q "401"; then
+  echo "  API: OK (9090)"
 fi
 
 echo ""
 echo "=== Selesai ==="
-echo "Dashboard: http://$(ip -4 addr show br-lan | grep inet | head -1 | awk '{print $2}' | cut -d/ -f1):9090"
+echo "Dashboard: http://$(ip -4 addr show br-lan 2>/dev/null | grep inet | head -1 | awk '{print $2}' | cut -d/ -f1):9090"
 echo "Log: tail -20 /var/log/nikki/app.log"
-echo "Update manual: /usr/local/bin/update-proxy.sh"
+echo "Update proxy: /usr/local/bin/update-proxy.sh"
+echo "Refresh WARP: /usr/local/bin/warp-refresh.sh"
