@@ -1,6 +1,6 @@
 # Base config for Nikki (mixin)
-# Fixed settings: ports, DNS, rules, proxy-groups, proxy-providers
-# Proxy files updated separately: warp.yml (local) + free-proxies.yml (repo)
+# Fixed: ports, DNS, rules, proxy-groups, proxy-providers
+# Proxy files: warp.yml (local) + free-proxies.yml (repo)
 
 mixed-port: 7890
 allow-lan: true
@@ -37,7 +37,6 @@ proxy-providers:
       enable: true
       url: http://www.gstatic.com/generate_204
       interval: 300
-
   free:
     type: file
     path: /etc/nikki/run/providers/free-proxies.yml
@@ -47,6 +46,21 @@ proxy-providers:
       interval: 300
 
 proxy-groups:
+  # WAN selection
+  - name: WAN
+    type: select
+    proxies:
+      - DIRECT
+      - WAN2
+  - name: WAN-AUTO
+    type: url-test
+    proxies:
+      - DIRECT
+      - WAN2
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+
+  # Global catch-all
   - name: GLOBAL
     type: select
     proxies:
@@ -55,20 +69,7 @@ proxy-groups:
       - PROXY-FREE
       - PROXY-WARP
 
-  - name: WAN
-    type: select
-    proxies:
-      - DIRECT
-      - WAN2
-
-  - name: WAN-TEST
-    type: url-test
-    proxies:
-      - DIRECT
-      - WAN2
-    url: http://www.gstatic.com/generate_204
-    interval: 300
-
+  # Proxy sources
   - name: PROXY-FREE
     type: url-test
     use:
@@ -76,7 +77,6 @@ proxy-groups:
     filter: "(?!.*(?:PROXY-|WARP-))"
     url: http://www.gstatic.com/generate_204
     interval: 300
-
   - name: PROXY-ID
     type: url-test
     use:
@@ -84,7 +84,6 @@ proxy-groups:
     filter: "^🇮🇩"
     url: http://www.gstatic.com/generate_204
     interval: 300
-
   - name: PROXY-SG
     type: url-test
     use:
@@ -92,7 +91,6 @@ proxy-groups:
     filter: "^🇸🇬"
     url: http://www.gstatic.com/generate_204
     interval: 300
-
   - name: PROXY-US
     type: url-test
     use:
@@ -100,7 +98,6 @@ proxy-groups:
     filter: "^🇺🇸"
     url: http://www.gstatic.com/generate_204
     interval: 300
-
   - name: PROXY-ASIA
     type: url-test
     use:
@@ -108,7 +105,6 @@ proxy-groups:
     filter: "^(?:🇮🇩|🇸🇬|🇲🇾|🇹🇭|🇻🇳|🇵🇭|🇯🇵|🇰🇷|🇹🇼|🇭🇰|🇮🇳)"
     url: http://www.gstatic.com/generate_204
     interval: 300
-
   - name: PROXY-EU
     type: url-test
     use:
@@ -117,13 +113,13 @@ proxy-groups:
     url: http://www.gstatic.com/generate_204
     interval: 300
 
+  # WARP
   - name: WARP-LB
     type: load-balance
     use:
       - warp
     url: http://www.gstatic.com/generate_204
     interval: 300
-
   - name: PROXY-WARP
     type: select
     use:
@@ -132,34 +128,36 @@ proxy-groups:
       - WARP-LB
       - DIRECT
 
+  # Service groups (all include WAN options)
   - name: GOOGLE
     type: select
     proxies:
       - DIRECT
+      - WAN2
       - GLOBAL
       - PROXY-FREE
       - PROXY-WARP
-
   - name: AI
     type: select
     proxies:
       - DIRECT
+      - WAN2
       - GLOBAL
       - PROXY-FREE
       - PROXY-WARP
-
   - name: CHECK-IP
     type: select
     proxies:
       - DIRECT
+      - WAN2
       - GLOBAL
       - PROXY-FREE
       - PROXY-WARP
-
   - name: SOCIAL
     type: select
     proxies:
       - DIRECT
+      - WAN2
       - GLOBAL
       - PROXY-FREE
       - PROXY-WARP
@@ -257,7 +255,6 @@ rules:
   - DOMAIN-SUFFIX,traceip.net,CHECK-IP
   - DOMAIN,api.ipify.org,CHECK-IP
   - DOMAIN-SUFFIX,ipify.org,CHECK-IP
-  - DOMAIN,api.ip.sb,CHECK-IP
   - DOMAIN,ip.3322.net,CHECK-IP
   - DOMAIN,ip.cip.cc,CHECK-IP
   - DOMAIN-SUFFIX,ipapi.co,CHECK-IP
