@@ -70,6 +70,11 @@ proxy-groups:
       - WAN2
       - WAN-AUTO
       - PROXY-FREE
+      - PROXY-ID
+      - PROXY-SG
+      - PROXY-US
+      - PROXY-ASIA
+      - PROXY-EU
       - PROXY-WARP
 
   # ── PROXY POOLS ────────────────────────────────
@@ -147,6 +152,11 @@ proxy-groups:
       - WAN-AUTO
       - GLOBAL
       - PROXY-FREE
+      - PROXY-ID
+      - PROXY-SG
+      - PROXY-US
+      - PROXY-ASIA
+      - PROXY-EU
       - PROXY-WARP
 
   # ── SERVICE ────────────────────────────────────
@@ -158,6 +168,11 @@ proxy-groups:
       - WAN-AUTO
       - GLOBAL
       - PROXY-FREE
+      - PROXY-ID
+      - PROXY-SG
+      - PROXY-US
+      - PROXY-ASIA
+      - PROXY-EU
       - PROXY-WARP
 
   - name: AI
@@ -168,6 +183,11 @@ proxy-groups:
       - WAN-AUTO
       - GLOBAL
       - PROXY-FREE
+      - PROXY-ID
+      - PROXY-SG
+      - PROXY-US
+      - PROXY-ASIA
+      - PROXY-EU
       - PROXY-WARP
 
   - name: CHECK-IP
@@ -178,6 +198,11 @@ proxy-groups:
       - WAN-AUTO
       - GLOBAL
       - PROXY-FREE
+      - PROXY-ID
+      - PROXY-SG
+      - PROXY-US
+      - PROXY-ASIA
+      - PROXY-EU
       - PROXY-WARP
 
   - name: SOCIAL
@@ -188,6 +213,11 @@ proxy-groups:
       - WAN-AUTO
       - GLOBAL
       - PROXY-FREE
+      - PROXY-ID
+      - PROXY-SG
+      - PROXY-US
+      - PROXY-ASIA
+      - PROXY-EU
       - PROXY-WARP
 
 rule-providers:
