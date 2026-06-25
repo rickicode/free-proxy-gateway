@@ -117,7 +117,7 @@ echo ""
 # ── BASE CONFIG ─────────────────────────────────
 echo -n "  Base config (mixin): "
 mkdir -p /etc/nikki
-curl -sL "$GITHUB_API/openwrt/base.yml" -o /etc/nikki/mixin.yaml 2>/dev/null
+curl -sL "$REPO/openwrt/base.yml" -o /etc/nikki/mixin.yaml 2>/dev/null
 if head -1 /etc/nikki/mixin.yaml | grep -q "Base config"; then
   ok "mixin.yaml ($(wc -l < /etc/nikki/mixin.yaml) lines)"
 else
