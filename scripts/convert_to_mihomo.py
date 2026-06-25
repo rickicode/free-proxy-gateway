@@ -273,6 +273,8 @@ CHECK_IP_RULES = [
     "DOMAIN,ip.me,CHECK-IP",
     "DOMAIN,ipinfo.io,CHECK-IP",
     "DOMAIN-SUFFIX,dnsleaktest.com,CHECK-IP",
+    "DOMAIN-SUFFIX,speedtest.net,CHECK-IP",
+    "DOMAIN,speedtest.net,CHECK-IP",
 ]
 
 
