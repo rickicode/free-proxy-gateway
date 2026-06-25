@@ -4,7 +4,6 @@
 # Install: ash installer.sh (auto-installs to /usr/bin/prox-menu)
 
 REPO="https://raw.githubusercontent.com/rickicode/free-proxy-singbox/refs/heads/main"
-GITHUB_API="https://api.github.com/repos/rickicode/free-proxy-singbox/contents"
 
 # Colors (busybox ash compatible)
 ESC=$(printf '\33')
@@ -157,7 +156,7 @@ update_proxy() {
     1)
       echo ""
       info "Downloading base config..."
-      curl -sL "$GITHUB_API/openwrt/base.yml" -o /etc/nikki/mixin.yaml 2>/dev/null
+      curl -sL "$REPO/openwrt/base.yml" -o /etc/nikki/mixin.yaml 2>/dev/null
       head -1 /etc/nikki/mixin.yaml | grep -q "Base config" && echo "  ${G}✓${N} Base config" || echo "  ${R}✗${N} Base config gagal"
 
       info "Downloading proxy list..."
@@ -170,7 +169,7 @@ update_proxy() {
       pgrep -x mihomo >/dev/null 2>&1 && echo "  ${G}✓${N} Nikki running" || echo "  ${R}✗${N} Nikki gagal start"
       ;;
     2)
-      curl -sL "$GITHUB_API/openwrt/base.yml" -o /etc/nikki/mixin.yaml 2>/dev/null
+      curl -sL "$REPO/openwrt/base.yml" -o /etc/nikki/mixin.yaml 2>/dev/null
       /etc/init.d/nikki restart 2>/dev/null
       echo "  ${G}✓${N} Mixin updated"
       ;;

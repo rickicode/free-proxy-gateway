@@ -8,7 +8,6 @@
 set -e
 
 REPO="https://raw.githubusercontent.com/rickicode/free-proxy-singbox/refs/heads/main"
-GITHUB_API="https://api.github.com/repos/rickicode/free-proxy-singbox/contents"
 FORCE=0
 
 [ "$1" = "--force" ] && FORCE=1
