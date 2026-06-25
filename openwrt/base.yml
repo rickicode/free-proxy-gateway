@@ -13,8 +13,6 @@ proxies:
   - name: WAN2
     type: direct
     interface-name: eth1
-  - name: AD-BLOCK
-    type: reject
 
 dns:
   enable: true
