@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 """Convert free-proxy-singbox live-proxies.json to mihomo (Clash Meta) YAML.
 
-Proxy names are normalized to country flag emojis (e.g. 🇺🇸, 🇩🇪 2).
+Proxy names format: {flag}-{ISP} or {flag}-{ISP}-{N} if multiple from same ISP.
+Example: 🇺🇸-Cloudflare, 🇩🇪-Hetzner-2
 GLOBAL group only shows proxy groups + DIRECT (no individual proxies).
 Group names keep PROXY-FREE/PROXY-ID/PROXY-SG/PROXY-US format."""
 
 import json
 import re
 import sys
+from collections import defaultdict
 from pathlib import Path
 
 
@@ -16,6 +18,24 @@ def cc_to_flag(cc: str) -> str:
     if len(cc) != 2 or not cc.isalpha():
         return cc
     return chr(0x1F1E6 + ord(cc[0]) - 65) + chr(0x1F1E6 + ord(cc[1]) - 65)
+
+
+def sanitize_isp(isp: str) -> str:
+    """Clean ISP name for display: remove Inc., Ltd., etc, truncate."""
+    if not isp or isp == "Unknown":
+        return ""
+    # Remove common suffixes
+    for suffix in [" Inc.", " Inc", " Ltd.", " Ltd", " LLC", " Co.,", " Co.", " S.A.",
+                   " GmbH", " AG", " B.V.", " SARL", " S.L.", " AB", " AS", " ApS",
+                   " Limited", " Corporation", " Holdings", " Group", " Networks",
+                   " Communications", " Technologies", " Solutions", " Services",
+                   " International", " Global", " Worldwide"]:
+        isp = isp.replace(suffix, "")
+    isp = isp.strip(" ,.-")
+    # Truncate to 25 chars
+    if len(isp) > 25:
+        isp = isp[:25].rsplit(" ", 1)[0]
+    return isp
 
 
 CC_RE = re.compile(r"^FREE-([A-Z]{2})-\d{4}-")
@@ -131,21 +151,41 @@ def build_mihomo(data: dict) -> str:
     proxies_input = data.get("proxies", [])
     groups_data = data.get("groups", {})
 
-    # Build tag -> flag name mapping
-    tag_to_flag: dict[str, str] = {}
-    counter: dict[str, int] = {}
-
+    # Pass 1: collect all entries with tag, country, ISP
+    entries = []
     for entry in proxies_input:
         ob = entry.get("outbound", entry)
         tag = ob.get("tag", "")
         m = CC_RE.match(tag)
-        if m and tag not in tag_to_flag:
-            cc = m.group(1)
-            flag = cc_to_flag(cc)
-            counter[cc] = counter.get(cc, 0) + 1
-            tag_to_flag[tag] = f"{flag} {counter[cc]}" if counter[cc] > 1 else flag
+        if not m:
+            continue
+        cc = m.group(1)
+        isp = entry.get("isp", "") or ""
+        entries.append({"tag": tag, "cc": cc, "isp": isp, "outbound": ob})
 
-    # Convert proxies with flag names
+    # Pass 2: group by (cc, isp) to handle numbering
+    # Key: (cc, isp_clean) -> list of tags
+    isp_groups = defaultdict(list)
+    for e in entries:
+        isp_clean = sanitize_isp(e["isp"])
+        if not isp_clean:
+            isp_clean = "Unknown"
+        key = (e["cc"], isp_clean)
+        isp_groups[key].append(e["tag"])
+
+    # Pass 3: build tag -> display name mapping
+    tag_to_name = {}
+    for (cc, isp_clean), tags in isp_groups.items():
+        flag = cc_to_flag(cc)
+        if len(tags) == 1:
+            # Single proxy from this ISP: 🇺🇸-Cloudflare
+            tag_to_name[tags[0]] = f"{flag}-{isp_clean}"
+        else:
+            # Multiple: 🇺🇸-Cloudflare-1, 🇺🇸-Cloudflare-2, ...
+            for i, tag in enumerate(tags, 1):
+                tag_to_name[tag] = f"{flag}-{isp_clean}-{i}"
+
+    # Convert proxies with display names
     proxies = []
     proxy_names = []
     for entry in proxies_input:
@@ -154,16 +194,16 @@ def build_mihomo(data: dict) -> str:
         if not proxy:
             continue
         tag = ob.get("tag", "")
-        proxy["name"] = tag_to_flag.get(tag, tag)
+        proxy["name"] = tag_to_name.get(tag, tag)
         proxies.append(proxy)
         proxy_names.append(proxy["name"])
 
-    # Build proxy groups using tag->flag mapping
+    # Build proxy groups using tag->name mapping
     proxy_groups = []
     for gname, gtags in groups_data.items():
         if not isinstance(gtags, list) or not gtags:
             continue
-        matching = [tag_to_flag[t] for t in gtags if t in tag_to_flag]
+        matching = [tag_to_name[t] for t in gtags if t in tag_to_name]
         if matching:
             proxy_groups.append({
                 "name": gname,
