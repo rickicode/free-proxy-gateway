@@ -14,13 +14,14 @@ FORCE=0
 [ "$1" = "--force" ] && FORCE=1
 
 # Colors (busybox ash compatible)
-R=$(printf '\033[0;31m')
-G=$(printf '\033[0;32m')
-Y=$(printf '\033[1;33m')
-B=$(printf '\033[0;34m')
-C=$(printf '\033[0;36m')
-W=$(printf '\033[1;37m')
-N=$(printf '\033[0m')
+ESC=$(printf '\33')
+R="${ESC}[0;31m"
+G="${ESC}[0;32m"
+Y="${ESC}[1;33m"
+B="${ESC}[0;34m"
+C="${ESC}[0;36m"
+W="${ESC}[1;37m"
+N="${ESC}[0m"
 
 ok()   { echo "  ${G}✓${N} $1"; }
 skip() { echo "  ${Y}⏭${N} $1 (sudah ada)"; }
@@ -55,7 +56,7 @@ echo ""
 
 # ── NIKKI ───────────────────────────────────────
 echo -n "  Nikki: "
-if pgrep -x nikki >/dev/null 2>&1 || [ -f /usr/bin/nikki ] || [ -f /usr/sbin/nikki ] || command -v nikki >/dev/null 2>&1; then
+if pgrep -x mihomo >/dev/null 2>&1 || [ -f /etc/init.d/nikki ] || apk list --installed 2>/dev/null | grep -q nikki || opkg list-installed 2>/dev/null | grep -q nikki; then
   if [ "$FORCE" = "1" ]; then
     info "Force reinstall..."
     wget -qO - https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/feed.sh | ash 2>/dev/null
