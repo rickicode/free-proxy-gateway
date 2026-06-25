@@ -530,6 +530,31 @@ show_logs() {
   read -r
 }
 
+# ── SELF INSTALL ─────────────────────────────────
+install_command() {
+  header
+  echo "${W}═══ INSTALL PROX-MENU COMMAND ═══${N}"
+  echo ""
+  
+  echo "Menginstall ke /usr/bin/prox-menu..."
+  
+  # Download latest version
+  curl -sL "$REPO/openwrt/installer.sh" -o /usr/bin/prox-menu 2>/dev/null
+  chmod +x /usr/bin/prox-menu
+  
+  if [ -f /usr/bin/prox-menu ]; then
+    echo "${G}✓ prox-menu terinstall!${N}"
+    echo ""
+    echo "Jalankan dengan: ${W}prox-menu${N}"
+  else
+    echo "${R}✗ Gagal install${N}"
+  fi
+  
+  echo ""
+  echo "${Y}Tekan Enter untuk kembali...${N}"
+  read -r
+}
+
 # ── MAIN MENU ───────────────────────────────────
 main_menu() {
   while true; do
@@ -544,6 +569,7 @@ main_menu() {
     echo "  ${G}6)${N} Cron        — Kelola scheduler"
     echo "  ${G}7)${N} Logs        — Lihat log"
     echo "  ${G}8)${N} Install     — Full install"
+    echo "  ${G}9)${N} Install CMD — Install prox-menu command"
     echo "  ${R}0)${N} Keluar"
     echo ""
     printf "Pilih: "
@@ -558,6 +584,7 @@ main_menu() {
       6) manage_cron ;;
       7) show_logs ;;
       8) full_install ;;
+      9) install_command ;;
       0) echo "${G}Bye!${N}"; exit 0 ;;
       *) echo "${R}Pilihan tidak valid${N}"; sleep 1 ;;
     esac
