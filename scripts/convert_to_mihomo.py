@@ -1,15 +1,42 @@
 #!/usr/bin/env python3
-"""Convert free-proxy-singbox live-proxies.json to mihomo (Clash Meta) YAML."""
+"""Convert free-proxy-singbox live-proxies.json to mihomo (Clash Meta) YAML.
+
+Proxy names are normalized to country flag emojis (e.g. 🇺🇸, 🇩🇪 2).
+GLOBAL group only shows proxy groups + DIRECT (no individual proxies)."""
 
 import json
+import re
 import sys
 from pathlib import Path
+
+
+# Country code -> flag emoji
+def cc_to_flag(cc: str) -> str:
+    if len(cc) != 2 or not cc.isalpha():
+        return cc
+    return chr(0x1F1E6 + ord(cc[0]) - 65) + chr(0x1F1E6 + ord(cc[1]) - 65)
+
+
+# Extract country code from tag like "FREE-XX-NNNN-anything"
+_CC_RE = re.compile(r"^FREE-([A-Z]{2})-\d{4}-")
+
+
+def normalize_name(tag: str, counter: dict) -> str:
+    """Convert FREE-XX-NNNN-suffix to flag emoji with index."""
+    m = _CC_RE.match(tag)
+    if not m:
+        return tag
+    cc = m.group(1)
+    flag = cc_to_flag(cc)
+    counter[cc] = counter.get(cc, 0) + 1
+    if counter[cc] == 1:
+        return flag
+    return f"{flag} {counter[cc]}"
 
 
 def convert_outbound(ob: dict) -> dict | None:
     """Convert sing-box outbound to mihomo proxy dict."""
     t = ob.get("type", "")
-    tag = ob.get("tag", "")
     server = ob.get("server", "")
     port = ob.get("server_port", 0)
 
@@ -19,7 +46,6 @@ def convert_outbound(ob: dict) -> dict | None:
     if t == "trojan":
         tls = ob.get("tls", {})
         return {
-            "name": tag,
             "type": "trojan",
             "server": server,
             "port": port,
@@ -33,7 +59,6 @@ def convert_outbound(ob: dict) -> dict | None:
         tls = ob.get("tls", {})
         transport = ob.get("transport", {})
         proxy = {
-            "name": tag,
             "type": "vless",
             "server": server,
             "port": port,
@@ -65,7 +90,6 @@ def convert_outbound(ob: dict) -> dict | None:
         tls = ob.get("tls", {})
         transport = ob.get("transport", {})
         proxy = {
-            "name": tag,
             "type": "vmess",
             "server": server,
             "port": port,
@@ -91,7 +115,6 @@ def convert_outbound(ob: dict) -> dict | None:
 
     if t == "shadowsocks":
         return {
-            "name": tag,
             "type": "ss",
             "server": server,
             "port": port,
@@ -103,7 +126,6 @@ def convert_outbound(ob: dict) -> dict | None:
     if t == "hysteria2":
         tls = ob.get("tls", {})
         proxy = {
-            "name": tag,
             "type": "hysteria2",
             "server": server,
             "port": port,
@@ -122,41 +144,61 @@ def build_mihomo(data: dict) -> str:
     proxies_input = data.get("proxies", [])
     groups_data = data.get("groups", {})
 
-    # Convert proxies using the nested outbound
+    # Convert & rename proxies
     proxies = []
     proxy_names = []
+    name_counter = {}  # cc -> count for numbering
+
     for entry in proxies_input:
         ob = entry.get("outbound", entry)
         proxy = convert_outbound(ob)
-        if proxy:
-            proxies.append(proxy)
-            proxy_names.append(proxy["name"])
+        if not proxy:
+            continue
+        tag = ob.get("tag", "")
+        name = normalize_name(tag, name_counter)
+        proxy["name"] = name
+        proxies.append(proxy)
+        proxy_names.append(name)
 
     # Build proxy groups
     proxy_groups = []
 
-    # Main selector with all proxies
-    if proxy_names:
-        proxy_groups.append({
-            "name": "PROXY-FREE",
-            "type": "select",
-            "proxies": proxy_names,
-        })
-
-    # Country-based auto-test groups
+    # Country-based url-test groups (prepend)
     for gname, gtags in groups_data.items():
-        if isinstance(gtags, list) and gtags:
-            matching = [t for t in gtags if t in proxy_names]
-            if matching:
-                proxy_groups.append({
-                    "name": gname,
-                    "type": "url-test",
-                    "proxies": matching,
-                    "url": "http://www.gstatic.com/generate_204",
-                    "interval": 300,
-                })
+        if not isinstance(gtags, list) or not gtags:
+            continue
+        matching = []
+        for t in gtags:
+            m = _CC_RE.match(t)
+            if m:
+                cc = m.group(1)
+                flag = cc_to_flag(cc)
+                # find matching renamed proxy
+                for pname in proxy_names:
+                    if pname == flag or pname.startswith(flag + " "):
+                        if pname not in matching:
+                            matching.append(pname)
+                        break
+            elif t in proxy_names:
+                matching.append(t)
+        if matching:
+            proxy_groups.append({
+                "name": gname,
+                "type": "url-test",
+                "proxies": matching,
+                "url": "http://www.gstatic.com/generate_204",
+                "interval": 300,
+            })
 
-    # Build YAML lines
+    # GLOBAL selector: only groups + DIRECT (no individual proxies)
+    group_names = [g["name"] for g in proxy_groups]
+    proxy_groups.insert(0, {
+        "name": "GLOBAL",
+        "type": "select",
+        "proxies": ["DIRECT"] + group_names,
+    })
+
+    # Build YAML
     lines = [
         "# Auto-generated by free-proxy-singbox",
         "# Source: https://github.com/rickicode/free-proxy-singbox",
