@@ -1,14 +1,13 @@
-# Social media rules
-- GEOSITE,telegram,SOCIAL
-- GEOSITE,twitter,SOCIAL
-- GEOSITE,facebook,SOCIAL
-- GEOSITE,instagram,SOCIAL
-- GEOSITE,reddit,SOCIAL
-- GEOSITE,whatsapp,SOCIAL
-- GEOSITE,spotify,SOCIAL
-- GEOSITE,line,SOCIAL
-- GEOSITE,signal,SOCIAL
-- GEOSITE,clubhouse,SOCIAL
-- DOMAIN-SUFFIX,threads.net,SOCIAL
-- DOMAIN-SUFFIX,mastodon.social,SOCIAL
-- DOMAIN-SUFFIX,bsky.app,SOCIAL
+GEOSITE,telegram,SOCIAL
+GEOSITE,twitter,SOCIAL
+GEOSITE,facebook,SOCIAL
+GEOSITE,instagram,SOCIAL
+GEOSITE,reddit,SOCIAL
+GEOSITE,whatsapp,SOCIAL
+GEOSITE,spotify,SOCIAL
+GEOSITE,line,SOCIAL
+GEOSITE,signal,SOCIAL
+GEOSITE,clubhouse,SOCIAL
+DOMAIN-SUFFIX,threads.net,SOCIAL
+DOMAIN-SUFFIX,mastodon.social,SOCIAL
+DOMAIN-SUFFIX,bsky.app,SOCIAL

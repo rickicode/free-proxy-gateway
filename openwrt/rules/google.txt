@@ -1,13 +1,12 @@
-# Google rules
-- GEOSITE,google,GOOGLE
-- GEOSITE,googlefcm,GOOGLE
-- DOMAIN-SUFFIX,google.com,GOOGLE
-- DOMAIN-SUFFIX,googleapis.com,GOOGLE
-- DOMAIN-SUFFIX,googlevideo.com,GOOGLE
-- DOMAIN-SUFFIX,gstatic.com,GOOGLE
-- DOMAIN-SUFFIX,ggpht.com,GOOGLE
-- DOMAIN-SUFFIX,youtube.com,GOOGLE
-- DOMAIN-SUFFIX,ytimg.com,GOOGLE
-- DOMAIN-SUFFIX,googleusercontent.com,GOOGLE
-- DOMAIN-SUFFIX,googleadservices.com,GOOGLE
-- DOMAIN-SUFFIX,googlesyndication.com,GOOGLE
+GEOSITE,google,GOOGLE
+GEOSITE,googlefcm,GOOGLE
+DOMAIN-SUFFIX,google.com,GOOGLE
+DOMAIN-SUFFIX,googleapis.com,GOOGLE
+DOMAIN-SUFFIX,googlevideo.com,GOOGLE
+DOMAIN-SUFFIX,gstatic.com,GOOGLE
+DOMAIN-SUFFIX,ggpht.com,GOOGLE
+DOMAIN-SUFFIX,youtube.com,GOOGLE
+DOMAIN-SUFFIX,ytimg.com,GOOGLE
+DOMAIN-SUFFIX,googleusercontent.com,GOOGLE
+DOMAIN-SUFFIX,googleadservices.com,GOOGLE
+DOMAIN-SUFFIX,googlesyndication.com,GOOGLE

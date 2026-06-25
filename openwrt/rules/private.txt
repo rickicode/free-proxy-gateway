@@ -1,5 +1,4 @@
-# Private & CN rules
-- GEOSITE,private,DIRECT
-- GEOIP,private,DIRECT,no-resolve
-- GEOSITE,cn,DIRECT
-- GEOIP,cn,DIRECT,no-resolve
+GEOSITE,private,DIRECT
+GEOIP,private,DIRECT,no-resolve
+GEOSITE,cn,DIRECT
+GEOIP,cn,DIRECT,no-resolve
