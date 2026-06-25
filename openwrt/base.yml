@@ -221,26 +221,6 @@ proxy-groups:
       - PROXY-WARP
 
 rule-providers:
-  # Adblock (remote)
-  oisd-big:
-    type: http
-    behavior: domain
-    url: "https://big.oisd.nl/domainswild"
-    path: ./ruleset/oisd-big.txt
-    interval: 86400
-  oisd-lite:
-    type: http
-    behavior: domain
-    url: "https://small.oisd.nl/domainswild"
-    path: ./ruleset/oisd-lite.txt
-    interval: 86400
-  adguard:
-    type: http
-    behavior: domain
-    url: "https://adguardteam.github.io/HostlistsRegistry/assets/filter_1.txt"
-    path: ./ruleset/adguard.txt
-    interval: 86400
-
   # Service rules (local)
   private:
     type: http
@@ -275,9 +255,6 @@ rule-providers:
 
 rules:
   # Adblock
-  - RULE-SET,oisd-big,BLOCKED
-  - RULE-SET,oisd-lite,BLOCKED
-  - RULE-SET,adguard,BLOCKED
   - GEOSITE,category-ads-all,BLOCKED
 
   # Private & CN
