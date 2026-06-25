@@ -2,7 +2,8 @@
 """Convert free-proxy-singbox live-proxies.json to mihomo (Clash Meta) YAML.
 
 Proxy names are normalized to country flag emojis (e.g. 🇺🇸, 🇩🇪 2).
-GLOBAL group only shows proxy groups + DIRECT (no individual proxies)."""
+GLOBAL group only shows proxy groups + DIRECT (no individual proxies).
+Group names keep PROXY-FREE/PROXY-ID/PROXY-SG/PROXY-US format."""
 
 import json
 import re
