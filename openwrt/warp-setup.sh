@@ -32,15 +32,14 @@ for i in $(seq 1 $COUNT); do
   work=$(mktemp -d)
   cd "$work"
 
-  if ! wgcf generate 2>/dev/null; then
-    echo "generate failed"
-    rm -rf "$work"; continue
-  fi
   if ! wgcf register --accept-tos 2>/dev/null; then
     echo "rate limited"
     rm -rf "$work"; sleep 3; continue
   fi
-  wgcf generate 2>/dev/null
+  if ! wgcf generate 2>/dev/null; then
+    echo "generate failed"
+    rm -rf "$work"; continue
+  fi
 
   privkey=$(grep "PrivateKey" "$work/wgcf-profile.conf" 2>/dev/null | cut -d= -f2 | tr -d ' ')
   addr=$(grep "Address" "$work/wgcf-profile.conf" 2>/dev/null | cut -d= -f2 | tr -d ' ')
