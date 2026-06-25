@@ -1,4 +1,0 @@
-GEOSITE,private
-GEOIP,private,DIRECT,no-resolve
-GEOSITE,cn
-GEOIP,cn,DIRECT,no-resolve

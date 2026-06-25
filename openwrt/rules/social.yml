@@ -1,0 +1,14 @@
+payload:
+  - GEOSITE,telegram
+  - GEOSITE,twitter
+  - GEOSITE,facebook
+  - GEOSITE,instagram
+  - GEOSITE,reddit
+  - GEOSITE,whatsapp
+  - GEOSITE,spotify
+  - GEOSITE,line
+  - GEOSITE,signal
+  - GEOSITE,clubhouse
+  - DOMAIN-SUFFIX,threads.net
+  - DOMAIN-SUFFIX,mastodon.social
+  - DOMAIN-SUFFIX,bsky.app
