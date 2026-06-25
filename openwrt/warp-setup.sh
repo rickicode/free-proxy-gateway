@@ -32,12 +32,21 @@ for i in $(seq 1 $COUNT); do
   work=$(mktemp -d)
   cd "$work"
 
+  # Clean old config and generate new unique keypair
+  rm -f wgcf-account.toml wgcf-profile.conf 2>/dev/null
+  # Generate fresh keypair
+  if ! wgcf generate 2>/dev/null; then
+    echo "generate failed"
+    rm -rf "$work"; continue
+  fi
+  # Register account
   if ! wgcf register --accept-tos 2>/dev/null; then
     echo "rate limited"
     rm -rf "$work"; sleep 3; continue
   fi
+  # Generate WireGuard config
   if ! wgcf generate 2>/dev/null; then
-    echo "generate failed"
+    echo "config failed"
     rm -rf "$work"; continue
   fi
 
@@ -57,7 +66,7 @@ creds['$label'] = {'private_key':'$privkey','address_v4':'$addr_v4','address_v6'
 json.dump(creds, open('$CRED_FILE','w'), indent=2)
 "
   registered=$((registered + 1))
-  sleep 2
+  sleep 3  # Rate limit protection between accounts
 done
 
 [ "$registered" -eq 0 ] && echo "Gagal semua. Coba lagi nanti." && exit 1
