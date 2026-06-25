@@ -124,11 +124,10 @@ proxy-groups:
 
   - name: PUB-WARP
     type: select
+    use:
+      - warp
     proxies:
       - WARP-LB
-      - WARP-1
-      - WARP-2
-      - WARP-3
       - DIRECT
       - PROXY-FREE
       - PROXY-ASIA
