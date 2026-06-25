@@ -272,6 +272,7 @@ CHECK_IP_RULES = [
     "DOMAIN,ipinfo.io,CHECK-IP",
     "DOMAIN,ip.me,CHECK-IP",
     "DOMAIN,ipinfo.io,CHECK-IP",
+    "DOMAIN-SUFFIX,dnsleaktest.com,CHECK-IP",
 ]
 
 
@@ -323,10 +324,10 @@ def build_mihomo(data: dict) -> str:
         if matching:
             proxy_groups.append({"name": gname, "type": "url-test", "proxies": matching, "url": "http://www.gstatic.com/generate_204", "interval": 300})
 
-    # Dedicated groups - CHECK-IP defaults to PROXY-FREE
+    # Dedicated groups
     proxy_groups.append({"name": "GOOGLE", "type": "select", "proxies": ["DIRECT"] + [g["name"] for g in proxy_groups]})
     proxy_groups.append({"name": "AI", "type": "select", "proxies": ["DIRECT"] + [g["name"] for g in proxy_groups]})
-    proxy_groups.append({"name": "CHECK-IP", "type": "select", "proxies": ["PROXY-FREE"] + [g["name"] for g in proxy_groups]})
+    proxy_groups.append({"name": "CHECK-IP", "type": "select", "proxies": ["DIRECT", "PROXY-FREE"] + [g["name"] for g in proxy_groups]})
     proxy_groups.append({"name": "SOCIAL", "type": "select", "proxies": ["DIRECT"] + [g["name"] for g in proxy_groups]})
 
     # GLOBAL
