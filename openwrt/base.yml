@@ -257,6 +257,12 @@ rules:
   # Adblock
   - GEOSITE,category-ads-all,BLOCKED
 
+  # Block STUN (WebRTC leak prevention)
+  - DST-PORT,3478,BLOCKED
+  - DST-PORT,5349,BLOCKED
+  - DST-PORT,19302,BLOCKED
+  - IP-CIDR,74.125.0.0/16,BLOCKED,no-resolve
+
   # IP check (before private to avoid GEOSITE,private catching check-ip domains)
   - RULE-SET,check-ip,CHECK-IP
 
