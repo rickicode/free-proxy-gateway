@@ -1,6 +1,6 @@
 # Base config for Nikki (mixin)
-# Fixed settings: ports, DNS, rules, static groups
-# Proxies come from profiles: warp.yml (local) + live-proxies.mihomo.yml (repo)
+# Fixed settings: ports, DNS, rules, proxy-groups, proxy-providers
+# Proxy files updated separately: warp.yml (local) + free-proxies.yml (repo)
 
 mixed-port: 7890
 allow-lan: true
@@ -23,6 +23,82 @@ dns:
   nameserver-policy:
     'geosite:private,cn': 223.5.5.5
     'geosite:geolocation-!cn': https://1.1.1.1/dns-query
+
+proxy-providers:
+  warp:
+    type: file
+    path: /etc/nikki/profiles/warp.yml
+    health-check:
+      enable: true
+      url: http://www.gstatic.com/generate_204
+      interval: 300
+
+  free:
+    type: file
+    path: /etc/nikki/profiles/free-proxies.yml
+    health-check:
+      enable: true
+      url: http://www.gstatic.com/generate_204
+      interval: 300
+
+proxy-groups:
+  - name: GLOBAL
+    type: select
+    proxies:
+      - DIRECT
+      - PROXY-FREE
+      - PROXY-WARP
+
+  - name: PROXY-FREE
+    type: url-test
+    use:
+      - free
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+
+  - name: WARP-LB
+    type: load-balance
+    use:
+      - warp
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+
+  - name: PROXY-WARP
+    type: select
+    proxies:
+      - WARP-LB
+
+  - name: GOOGLE
+    type: select
+    proxies:
+      - DIRECT
+      - GLOBAL
+      - PROXY-FREE
+      - PROXY-WARP
+
+  - name: AI
+    type: select
+    proxies:
+      - DIRECT
+      - GLOBAL
+      - PROXY-FREE
+      - PROXY-WARP
+
+  - name: CHECK-IP
+    type: select
+    proxies:
+      - DIRECT
+      - GLOBAL
+      - PROXY-FREE
+      - PROXY-WARP
+
+  - name: SOCIAL
+    type: select
+    proxies:
+      - DIRECT
+      - GLOBAL
+      - PROXY-FREE
+      - PROXY-WARP
 
 rules:
   - GEOSITE,category-ads-all,REJECT
