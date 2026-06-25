@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Convert free-proxy-singbox live-proxies.json to mihomo (Clash Meta) YAML.
 
+Output: proxies + proxy-groups ONLY (no config/DNS/rules).
+Fixed config lives in openwrt/base.yml (Nikki mixin).
+
 Proxy names format: {flag}-{ISP} or {flag}-{ISP}-{N} if multiple from same ISP.
 Example: 🇺🇸-Cloudflare, 🇩🇪-Hetzner-2
 GLOBAL group only shows proxy groups + DIRECT (no individual proxies).
@@ -94,181 +97,6 @@ def convert_outbound(ob: dict) -> dict | None:
     return None
 
 
-CHECK_IP_RULES = [
-    "DOMAIN,ifconfig.me,CHECK-IP",
-    "DOMAIN-SUFFIX,ifconfig.me,CHECK-IP",
-    "DOMAIN,ifconfig.co,CHECK-IP",
-    "DOMAIN-SUFFIX,ifconfig.co,CHECK-IP",
-    "DOMAIN,icanhazip.com,CHECK-IP",
-    "DOMAIN-SUFFIX,icanhazip.com,CHECK-IP",
-    "DOMAIN,ip.me,CHECK-IP",
-    "DOMAIN,ip.sb,CHECK-IP",
-    "DOMAIN-SUFFIX,ip.sb,CHECK-IP",
-    "DOMAIN,api.ip.sb,CHECK-IP",
-    "DOMAIN,whatismyip.akamai.com,CHECK-IP",
-    "DOMAIN,checkip.amazonaws.com,CHECK-IP",
-    "DOMAIN,myip.opendns.com,CHECK-IP",
-    "DOMAIN,whoami.akamai.net,CHECK-IP",
-    "DOMAIN,echo.irc.wtf,CHECK-IP",
-    "DOMAIN,tnx.nl,CHECK-IP",
-    "DOMAIN,l2.io,CHECK-IP",
-    "DOMAIN,ipecho.net,CHECK-IP",
-    "DOMAIN-SUFFIX,ipecho.net,CHECK-IP",
-    "DOMAIN,wtfismyip.com,CHECK-IP",
-    "DOMAIN-SUFFIX,wtfismyip.com,CHECK-IP",
-    "DOMAIN,ipinfo.io,CHECK-IP",
-    "DOMAIN-SUFFIX,ipinfo.io,CHECK-IP",
-    "DOMAIN,myip.dnsomatic.com,CHECK-IP",
-    "DOMAIN,traceip.net,CHECK-IP",
-    "DOMAIN-SUFFIX,traceip.net,CHECK-IP",
-    "DOMAIN,api.ipify.org,CHECK-IP",
-    "DOMAIN-SUFFIX,ipify.org,CHECK-IP",
-    "DOMAIN,api.ip.sb,CHECK-IP",
-    "DOMAIN,ip.3322.net,CHECK-IP",
-    "DOMAIN,ip.cip.cc,CHECK-IP",
-    "DOMAIN-SUFFIX,ipapi.co,CHECK-IP",
-    "DOMAIN,api.ipapi.com,CHECK-IP",
-    "DOMAIN-SUFFIX,ipwhois.io,CHECK-IP",
-    "DOMAIN,ipwho.is,CHECK-IP",
-    "DOMAIN-SUFFIX,ipwhois.app,CHECK-IP",
-    "DOMAIN-SUFFIX,ipstack.com,CHECK-IP",
-    "DOMAIN-SUFFIX,ipgeolocation.io,CHECK-IP",
-    "DOMAIN-SUFFIX,db-ip.com,CHECK-IP",
-    "DOMAIN-SUFFIX,ip2location.com,CHECK-IP",
-    "DOMAIN-SUFFIX,ip2c.org,CHECK-IP",
-    "DOMAIN-SUFFIX,extreme-ip-lookup.com,CHECK-IP",
-    "DOMAIN-SUFFIX,ipapi.is,CHECK-IP",
-    "DOMAIN-SUFFIX,bigdatacloud.com,CHECK-IP",
-    "DOMAIN-SUFFIX,abstractapi.com,CHECK-IP",
-    "DOMAIN-SUFFIX,seeip.org,CHECK-IP",
-    "DOMAIN,api.seeip.org,CHECK-IP",
-    "DOMAIN,ip.anysrc.com,CHECK-IP",
-    "DOMAIN,ip-api.com,CHECK-IP",
-    "DOMAIN-SUFFIX,ip-api.com,CHECK-IP",
-    "DOMAIN-SUFFIX,ipapi.com,CHECK-IP",
-    "DOMAIN,ip.taobao.com,CHECK-IP",
-    "DOMAIN,ip.qq.com,CHECK-IP",
-    "DOMAIN,ip.echo.qq.com,CHECK-IP",
-    "DOMAIN-SUFFIX,ip.cn,CHECK-IP",
-    "DOMAIN-SUFFIX,ipip.net,CHECK-IP",
-    "DOMAIN,myip.ipip.net,CHECK-IP",
-    "DOMAIN,ip.dnsexit.com,CHECK-IP",
-    "DOMAIN,ip.smart-ip.net,CHECK-IP",
-    "DOMAIN,ip4.me,CHECK-IP",
-    "DOMAIN-SUFFIX,ip4.me,CHECK-IP",
-    "DOMAIN,api64.ipify.org,CHECK-IP",
-    "DOMAIN,api.bigdatacloud.net,CHECK-IP",
-    "DOMAIN,geolocation-db.com,CHECK-IP",
-    "DOMAIN-SUFFIX,geolocation-db.com,CHECK-IP",
-    "DOMAIN,ipwhois.app,CHECK-IP",
-    "DOMAIN,ip-api.io,CHECK-IP",
-    "DOMAIN-SUFFIX,ip-api.io,CHECK-IP",
-    "DOMAIN,ipfind.co,CHECK-IP",
-    "DOMAIN-SUFFIX,ipfind.co,CHECK-IP",
-    "DOMAIN,ipapi.com,CHECK-IP",
-    "DOMAIN,ipgeolocation.abstractapi.com,CHECK-IP",
-    "DOMAIN,ipapi.co,CHECK-IP",
-    "DOMAIN,ip.520114.xyz,CHECK-IP",
-    "DOMAIN,ip.bsc.cool,CHECK-IP",
-    "DOMAIN,ip.900cha.com,CHECK-IP",
-    "DOMAIN,ip.useragentinfo.com,CHECK-IP",
-    "DOMAIN,whatismyipaddress.com,CHECK-IP",
-    "DOMAIN-SUFFIX,whatismyipaddress.com,CHECK-IP",
-    "DOMAIN,myip.com,CHECK-IP",
-    "DOMAIN-SUFFIX,myip.com,CHECK-IP",
-    "DOMAIN-SUFFIX,ipchicken.com,CHECK-IP",
-    "DOMAIN-SUFFIX,ipleak.net,CHECK-IP",
-    "DOMAIN,ipleak.net,CHECK-IP",
-    "DOMAIN-SUFFIX,iplocation.net,CHECK-IP",
-    "DOMAIN,iplocation.net,CHECK-IP",
-    "DOMAIN-SUFFIX,ip2location.com,CHECK-IP",
-    "DOMAIN,ip2location.com,CHECK-IP",
-    "DOMAIN-SUFFIX,ipfingerprints.com,CHECK-IP",
-    "DOMAIN,ipfingerprints.com,CHECK-IP",
-    "DOMAIN-SUFFIX,whatismyip.com,CHECK-IP",
-    "DOMAIN,whatismyip.com,CHECK-IP",
-    "DOMAIN-SUFFIX,ipchecking.com,CHECK-IP",
-    "DOMAIN,ipchecking.com,CHECK-IP",
-    "DOMAIN-SUFFIX,ipaddress.sh,CHECK-IP",
-    "DOMAIN,ipaddress.sh,CHECK-IP",
-    "DOMAIN-SUFFIX,myipaddress.com,CHECK-IP",
-    "DOMAIN,myipaddress.com,CHECK-IP",
-    "DOMAIN-SUFFIX,showip.net,CHECK-IP",
-    "DOMAIN,showip.net,CHECK-IP",
-    "DOMAIN-SUFFIX,my-ip.io,CHECK-IP",
-    "DOMAIN,my-ip.io,CHECK-IP",
-    "DOMAIN-SUFFIX,ipinfo.io,CHECK-IP",
-    "DOMAIN,ipinfo.io,CHECK-IP",
-    "DOMAIN-SUFFIX,ipapi.is,CHECK-IP",
-    "DOMAIN,ipapi.is,CHECK-IP",
-    "DOMAIN-SUFFIX,whoer.net,CHECK-IP",
-    "DOMAIN,whoer.net,CHECK-IP",
-    "DOMAIN-SUFFIX,browserleaks.com,CHECK-IP",
-    "DOMAIN,browserleaks.com,CHECK-IP",
-    "DOMAIN-SUFFIX,coveryourip.com,CHECK-IP",
-    "DOMAIN,coveryourip.com,CHECK-IP",
-    "DOMAIN-SUFFIX,hide-my-ip.com,CHECK-IP",
-    "DOMAIN-SUFFIX,ipvoid.com,CHECK-IP",
-    "DOMAIN,ipvoid.com,CHECK-IP",
-    "DOMAIN-SUFFIX,iptracker.io,CHECK-IP",
-    "DOMAIN,iptracker.io,CHECK-IP",
-    "DOMAIN-SUFFIX,ip-tracker.org,CHECK-IP",
-    "DOMAIN,ip-tracker.org,CHECK-IP",
-    "DOMAIN-SUFFIX,iplogger.org,CHECK-IP",
-    "DOMAIN-SUFFIX,grabify.link,CHECK-IP",
-    "DOMAIN,iplogger.com,CHECK-IP",
-    "DOMAIN,whatismyip.live,CHECK-IP",
-    "DOMAIN-SUFFIX,whatismyip.live,CHECK-IP",
-    "DOMAIN,ipinfo.telstra.com,CHECK-IP",
-    "DOMAIN,check-my-ip.net,CHECK-IP",
-    "DOMAIN-SUFFIX,check-my-ip.net,CHECK-IP",
-    "DOMAIN,ipcheck.me,CHECK-IP",
-    "DOMAIN-SUFFIX,ipcheck.me,CHECK-IP",
-    "DOMAIN,showmyip.com,CHECK-IP",
-    "DOMAIN-SUFFIX,showmyip.com,CHECK-IP",
-    "DOMAIN,whatismyip.host,CHECK-IP",
-    "DOMAIN-SUFFIX,whatismyip.host,CHECK-IP",
-    "DOMAIN,ipmonkey.com,CHECK-IP",
-    "DOMAIN-SUFFIX,ipmonkey.com,CHECK-IP",
-    "DOMAIN,ipinfo.nu,CHECK-IP",
-    "DOMAIN-SUFFIX,ipinfo.nu,CHECK-IP",
-    "DOMAIN,ipaddress.com,CHECK-IP",
-    "DOMAIN-SUFFIX,ipaddress.com,CHECK-IP",
-    "DOMAIN,ipaddress.my,CHECK-IP",
-    "DOMAIN-SUFFIX,ipaddress.my,CHECK-IP",
-    "DOMAIN,checkip.net,CHECK-IP",
-    "DOMAIN-SUFFIX,checkip.net,CHECK-IP",
-    "DOMAIN,ip-checker.net,CHECK-IP",
-    "DOMAIN-SUFFIX,ip-checker.net,CHECK-IP",
-    "DOMAIN,ip-lookup.net,CHECK-IP",
-    "DOMAIN-SUFFIX,ip-lookup.net,CHECK-IP",
-    "DOMAIN,ipaddress.world,CHECK-IP",
-    "DOMAIN-SUFFIX,ipaddress.world,CHECK-IP",
-    "DOMAIN,ip-details.com,CHECK-IP",
-    "DOMAIN-SUFFIX,ip-details.com,CHECK-IP",
-    "DOMAIN,ip-api.com,CHECK-IP",
-    "DOMAIN,mylocation.org,CHECK-IP",
-    "DOMAIN-SUFFIX,mylocation.org,CHECK-IP",
-    "DOMAIN,iplocation.com,CHECK-IP",
-    "DOMAIN-SUFFIX,iplocation.com,CHECK-IP",
-    "DOMAIN,ipgeolocation.com,CHECK-IP",
-    "DOMAIN-SUFFIX,ipgeolocation.com,CHECK-IP",
-    "DOMAIN,whatismyip.lantronanetworks.com,CHECK-IP",
-    "DOMAIN,ip-ping.com,CHECK-IP",
-    "DOMAIN-SUFFIX,ip-ping.com,CHECK-IP",
-    "DOMAIN,ipaddress.is,CHECK-IP",
-    "DOMAIN-SUFFIX,ipaddress.is,CHECK-IP",
-    "DOMAIN,ipaddress.fyi,CHECK-IP",
-    "DOMAIN-SUFFIX,ipaddress.fyi,CHECK-IP",
-    "DOMAIN,myip.ipadressen.se,CHECK-IP",
-    "DOMAIN,ipinfo.io,CHECK-IP",
-    "DOMAIN,ip.me,CHECK-IP",
-    "DOMAIN-SUFFIX,dnsleaktest.com,CHECK-IP",
-    "DOMAIN-SUFFIX,speedtest.net,CHECK-IP",
-    "DOMAIN,speedtest.net,CHECK-IP",
-]
-
-
 def build_mihomo(data: dict) -> str:
     proxies_input = data.get("proxies", [])
     groups_data = data.get("groups", {})
@@ -309,7 +137,7 @@ def build_mihomo(data: dict) -> str:
         proxies.append(proxy)
         proxy_names.append(proxy["name"])
 
-    # Build proxy groups
+    # Build proxy groups (dynamic — depends on which proxies are live)
     proxy_groups = []
     for gname, gtags in groups_data.items():
         if not isinstance(gtags, list) or not gtags: continue
@@ -317,28 +145,25 @@ def build_mihomo(data: dict) -> str:
         if matching:
             proxy_groups.append({"name": gname, "type": "url-test", "proxies": matching, "url": "http://www.gstatic.com/generate_204", "interval": 300})
 
-    # Dedicated groups
+    # Dedicated groups — reference proxy groups, not individual proxies
     proxy_groups.append({"name": "GOOGLE", "type": "select", "proxies": ["DIRECT"] + [g["name"] for g in proxy_groups]})
     proxy_groups.append({"name": "AI", "type": "select", "proxies": ["DIRECT"] + [g["name"] for g in proxy_groups]})
     proxy_groups.append({"name": "CHECK-IP", "type": "select", "proxies": ["DIRECT"] + [g["name"] for g in proxy_groups]})
     proxy_groups.append({"name": "SOCIAL", "type": "select", "proxies": ["DIRECT"] + [g["name"] for g in proxy_groups]})
 
-    # GLOBAL = catch-all group for traffic not matched by rules
+    # GLOBAL = catch-all group
     group_names = [g["name"] for g in proxy_groups]
     proxy_groups.insert(0, {"name": "GLOBAL", "type": "select", "proxies": ["DIRECT"] + group_names})
 
-    # Build YAML
+    # Output: proxies + proxy-groups ONLY
+    # Config/DNS/rules live in openwrt/base.yml (mixin)
     lines = [
         "# Auto-generated by free-proxy-singbox",
         "# Source: https://github.com/rickicode/free-proxy-singbox",
         f"# Generated: {data.get('generated_at', 'unknown')}",
         f"# Live proxies: {data.get('live_count', len(proxy_names))}",
-        "", "mixed-port: 7890", "allow-lan: true", "bind-address: '*'", "mode: rule", "log-level: warning", "ipv6: false", "",
-        "dns:", "  enable: true", "  listen: :1053", "  enhanced-mode: fake-ip", "  fake-ip-range: 198.18.0.1/16",
-        "  default-nameserver:", "    - 223.5.5.5", "    - 8.8.8.8",
-        "  nameserver:", "    - https://223.5.5.5/dns-query", "    - https://1.1.1.1/dns-query",
-        "  nameserver-policy:", "    'geosite:private,cn': 223.5.5.5", "    'geosite:geolocation-!cn': https://1.1.1.1/dns-query",
-        "", "proxies:",
+        "",
+        "proxies:",
     ]
 
     for p in proxies:
@@ -347,92 +172,6 @@ def build_mihomo(data: dict) -> str:
     lines.extend(["", "proxy-groups:"])
     for g in proxy_groups:
         lines.append(f"  - {json.dumps(g, ensure_ascii=False)}")
-
-    lines.extend(["", "rules:"])
-    lines.append("  - GEOSITE,category-ads-all,REJECT")
-    lines.append("  - GEOSITE,private,DIRECT")
-    lines.append("  - GEOIP,private,DIRECT,no-resolve")
-    lines.append("  - GEOSITE,cn,DIRECT")
-    lines.append("  - GEOIP,cn,DIRECT,no-resolve")
-    lines.append("  - GEOSITE,google,GOOGLE")
-    lines.append("  - GEOSITE,googlefcm,GOOGLE")
-    lines.append("  - DOMAIN-SUFFIX,google.com,GOOGLE")
-    lines.append("  - DOMAIN-SUFFIX,googleapis.com,GOOGLE")
-    lines.append("  - DOMAIN-SUFFIX,googlevideo.com,GOOGLE")
-    lines.append("  - DOMAIN-SUFFIX,gstatic.com,GOOGLE")
-    lines.append("  - DOMAIN-SUFFIX,ggpht.com,GOOGLE")
-    lines.append("  - DOMAIN-SUFFIX,youtube.com,GOOGLE")
-    lines.append("  - DOMAIN-SUFFIX,ytimg.com,GOOGLE")
-    lines.append("  - DOMAIN-SUFFIX,googleusercontent.com,GOOGLE")
-    lines.append("  - DOMAIN-SUFFIX,googleadservices.com,GOOGLE")
-    lines.append("  - DOMAIN-SUFFIX,googlesyndication.com,GOOGLE")
-    lines.append("  - GEOSITE,openai,AI")
-    lines.append("  - DOMAIN-SUFFIX,openai.com,AI")
-    lines.append("  - DOMAIN-SUFFIX,chatgpt.com,AI")
-    lines.append("  - DOMAIN-SUFFIX,oaiusercontent.com,AI")
-    lines.append("  - DOMAIN-SUFFIX,ai.azure.com,AI")
-    lines.append("  - DOMAIN-SUFFIX,anthropic.com,AI")
-    lines.append("  - DOMAIN-SUFFIX,claude.ai,AI")
-    lines.append("  - DOMAIN-SUFFIX,perplexity.ai,AI")
-    lines.append("  - DOMAIN-SUFFIX,copilot.microsoft.com,AI")
-    lines.append("  - DOMAIN-SUFFIX,groq.com,AI")
-    lines.append("  - DOMAIN-SUFFIX,mistral.ai,AI")
-    lines.append("  - DOMAIN-SUFFIX,gemini.google.com,AI")
-    lines.append("  - DOMAIN-SUFFIX,bard.google.com,AI")
-    lines.append("  - DOMAIN-SUFFIX,deepseek.com,AI")
-    lines.append("  - DOMAIN-SUFFIX,kimi.ai,AI")
-    lines.append("  - DOMAIN-SUFFIX,doubao.com,AI")
-    lines.append("  - DOMAIN-SUFFIX,zhipu.ai,AI")
-    lines.append("  - DOMAIN-SUFFIX,moonshot.cn,AI")
-    lines.append("  - DOMAIN-SUFFIX,minimaxi.com,AI")
-    lines.append("  - DOMAIN-SUFFIX,baichuan-ai.com,AI")
-    lines.append("  - DOMAIN-SUFFIX,qwen.ai,AI")
-    lines.append("  - DOMAIN-SUFFIX,tongyi.aliyun.com,AI")
-    lines.append("  - DOMAIN-SUFFIX,huggingface.co,AI")
-    lines.append("  - DOMAIN-SUFFIX,replicate.com,AI")
-    lines.append("  - DOMAIN-SUFFIX,together.ai,AI")
-    lines.append("  - DOMAIN-SUFFIX,cohere.com,AI")
-    lines.append("  - DOMAIN-SUFFIX,ai21.com,AI")
-    lines.append("  - DOMAIN-SUFFIX,stability.ai,AI")
-    lines.append("  - DOMAIN-SUFFIX,midjourney.com,AI")
-    lines.append("  - DOMAIN-SUFFIX,character.ai,AI")
-    lines.append("  - DOMAIN-SUFFIX,poe.com,AI")
-    lines.append("  - DOMAIN-SUFFIX,you.com,AI")
-    lines.append("  - DOMAIN-SUFFIX,phind.com,AI")
-    lines.append("  - DOMAIN-SUFFIX,cursor.sh,AI")
-    lines.append("  - DOMAIN-SUFFIX,codeium.com,AI")
-    lines.append("  - DOMAIN-SUFFIX,githubcopilot.com,AI")
-    lines.append("  - DOMAIN-SUFFIX,codestral.com,AI")
-    lines.append("  - DOMAIN-SUFFIX,fireworks.ai,AI")
-    lines.append("  - DOMAIN-SUFFIX,anyscale.com,AI")
-    lines.append("  - DOMAIN-SUFFIX,openrouter.ai,AI")
-    lines.append("  - DOMAIN-SUFFIX,aimlapi.com,AI")
-    lines.append("  - DOMAIN-SUFFIX,elevenlabs.io,AI")
-    lines.append("  - DOMAIN-SUFFIX,suno.ai,AI")
-    lines.append("  - DOMAIN-SUFFIX,runwayml.com,AI")
-    lines.append("  - DOMAIN-SUFFIX,synthesia.io,AI")
-    lines.append("  - DOMAIN-SUFFIX,search.brave.com,AI")
-    lines.append("  - DOMAIN-SUFFIX,claude.com,AI")
-
-    for rule in CHECK_IP_RULES:
-        lines.append(f"  - {rule}")
-
-    lines.append("  - GEOSITE,telegram,SOCIAL")
-    lines.append("  - GEOSITE,twitter,SOCIAL")
-    lines.append("  - GEOSITE,facebook,SOCIAL")
-    lines.append("  - GEOSITE,instagram,SOCIAL")
-    lines.append("  - GEOSITE,reddit,SOCIAL")
-    lines.append("  - GEOSITE,whatsapp,SOCIAL")
-    lines.append("  - GEOSITE,spotify,SOCIAL")
-    lines.append("  - GEOSITE,line,SOCIAL")
-    lines.append("  - GEOSITE,signal,SOCIAL")
-    lines.append("  - GEOSITE,clubhouse,SOCIAL")
-    lines.append("  - DOMAIN-SUFFIX,threads.net,SOCIAL")
-    lines.append("  - DOMAIN-SUFFIX,mastodon.social,SOCIAL")
-    lines.append("  - DOMAIN-SUFFIX,bsky.app,SOCIAL")
-    lines.append("  - GEOSITE,github,PROXY-FREE")
-    lines.append("  - GEOSITE,netflix,PROXY-FREE")
-    lines.append("  - MATCH,GLOBAL")
 
     lines.append("")
     return "\n".join(lines)

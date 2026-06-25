@@ -1,15 +1,15 @@
 # OpenWrt Gateway Setup
 
-Panduan lengkap setup OpenWrt sebagai VPN gateway dengan proxy otomatis dari free-proxy-singbox.
+Setup OpenWrt router sebagai proxy gateway pakai **Nikki** (mihomo engine).
 
 ## Prerequisites
 
-**Nikki harus sudah terinstall di OpenWrt sebelum menjalankan setup.**
-
-```bash
-# Install Nikki + LuCI (kalau belum)
-apk add nikki luci-app-nikki
-```
+- OpenWrt dengan `apk` (Alpine package manager)
+- Nikki terinstall:
+  ```bash
+  wget -O - https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/feed.sh | ash
+  apk add nikki luci-app-nikki
+  ```
 
 ## Arsitektur
 
@@ -17,28 +17,38 @@ apk add nikki luci-app-nikki
 Client (192.168.x.x)
     ↓
 OpenWrt Gateway (Nikki + Mihomo)
+    ├── mixin.yaml (base config: DNS, rules, ports) ← jarang berubah
+    ├── free-proxy-singbox.yml (proxy list + groups)  ← auto-update tiap 12 jam
+    └── Nikki merge keduanya → runtime config
     ├── DIRECT (default)
+    ├── GLOBAL (catch-all)
     ├── PROXY-FREE (auto-select free proxy)
-    ├── PROXY-WARP (Cloudflare WARP)
+    ├── PROXY-WARP (Cloudflare WARP, via mixin)
     ├── AI group (OpenAI, Claude, dll)
     ├── GOOGLE group
     ├── CHECK-IP group
     └── SOCIAL group
 ```
 
-## Quick Start (1 Command)
+**Split config:**
+| File | Isi | Update |
+|---|---|---|
+| `openwrt/base.yml` → `/etc/nikki/mixin.yaml` | DNS, ports, rules, group definitions | Manual / jarang |
+| `output/live-proxies.mihomo.yml` → `/etc/nikki/profiles/free-proxy-singbox.yml` | Proxies + proxy-groups | Auto tiap 12 jam |
 
-**Pastikan Nikki sudah terinstall dulu!**
+## Quick Start (1 Command)
 
 ```bash
 wget -O setup.sh https://raw.githubusercontent.com/rickicode/free-proxy-singbox/main/openwrt/setup.sh && ash setup.sh
 ```
 
 Script ini akan:
-1. Download proxy config dari repo ini (auto-update tiap 12 jam)
-2. Konfigurasi Nikki via UCI (TPROXY, DNS hijack)
-3. Buka firewall WAN
-4. Setup cron auto-update
+1. Download `base.yml` → `/etc/nikki/mixin.yaml`
+2. Download proxy list → `/etc/nikki/profiles/free-proxy-singbox.yml`
+3. Konfigurasi Nikki via UCI
+4. Setup firewall DNS redirect
+5. Install cron auto-update tiap 12 jam
+6. Start Nikki
 
 ## Manual Install
 
@@ -49,17 +59,20 @@ wget -O - https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/fe
 apk add nikki luci-app-nikki
 ```
 
-### 2. Download proxy config
+### 2. Download base config (mixin)
+
+```bash
+wget -O /etc/nikki/mixin.yaml \
+  https://raw.githubusercontent.com/rickicode/free-proxy-singbox/main/openwrt/base.yml
+```
+
+### 3. Download proxy list
 
 ```bash
 mkdir -p /etc/nikki/profiles
 wget -O /etc/nikki/profiles/free-proxy-singbox.yml \
   https://raw.githubusercontent.com/rickicode/free-proxy-singbox/main/output/live-proxies.mihomo.yml
 ```
-
-### 3. Setup WARP WireGuard (opsional)
-
-Lihat [warp-setup.md](warp-setup.md)
 
 ### 4. Konfigurasi Nikki via UCI
 
@@ -78,8 +91,8 @@ uci commit nikki
 ### 5. Firewall
 
 ```bash
-uci set firewall.@zone[1].input=ACCEPT
-uci commit firewall
+iptables -t nat -A PREROUTING -p tcp --dport 53 -j REDIRECT --to-ports 1053
+iptables -t nat -A PREROUTING -p udp --dport 53 -j REDIRECT --to-ports 1053
 ```
 
 ### 6. Start
@@ -93,71 +106,95 @@ uci commit firewall
 ```bash
 cat > /usr/local/bin/update-proxy.sh << 'EOF'
 #!/bin/sh
-URL="https://raw.githubusercontent.com/rickicode/free-proxy-singbox/main/output/live-proxies.mihomo.yml"
+PROXY_URL="https://raw.githubusercontent.com/rickicode/free-proxy-singbox/main/output/live-proxies.mihomo.yml"
+BASE_URL="https://raw.githubusercontent.com/rickicode/free-proxy-singbox/main/openwrt/base.yml"
 PROFILE="/etc/nikki/profiles/free-proxy-singbox.yml"
-curl -sL --max-time 60 "$URL" -o "$PROFILE.tmp"
+MIXIN="/etc/nikki/mixin.yaml"
+CHANGED=0
+
+curl -sL --max-time 60 "$PROXY_URL" -o "$PROFILE.tmp" 2>/dev/null
 if head -1 "$PROFILE.tmp" | grep -q "Auto-generated"; then
   mv "$PROFILE.tmp" "$PROFILE"
-  /etc/init.d/nikki restart
-  echo "[$(date)] Updated OK" >> /var/log/proxy-update.log
+  CHANGED=1
 else
   rm -f "$PROFILE.tmp"
-  echo "[$(date)] Download failed" >> /var/log/proxy-update.log
+fi
+
+curl -sL --max-time 60 "$BASE_URL" -o "$MIXIN.tmp" 2>/dev/null
+if head -1 "$MIXIN.tmp" | grep -q "Base config"; then
+  mv "$MIXIN.tmp" "$MIXIN"
+  CHANGED=1
+else
+  rm -f "$MIXIN.tmp"
+fi
+
+if [ "$CHANGED" = "1" ]; then
+  /etc/init.d/nikki restart 2>/dev/null
+  echo "[$(date)] Updated + restarted" >> /var/log/proxy-update.log
 fi
 EOF
 chmod +x /usr/local/bin/update-proxy.sh
-echo "0 */12 * * * /usr/local/bin/update-proxy.sh" >> /etc/crontabs/root
+echo "0 */12 * * * /usr/local/bin/update-proxy.sh" | crontab -
 ```
 
 ## Dashboard
 
 ```
-http://<IP-OpenWrt>:9090/ui/?secret=<password>
+http://<router-ip>:9090
 ```
 
 ## Proxy Groups
 
-| Group | Fungsi | Default |
-|-------|--------|---------|
-| **GLOBAL** | Catch-all, user kontrol | DIRECT |
-| **PROXY-FREE** | Auto-select free proxy | 🇸🇬 auto |
-| **PROXY-ID** | Indonesia | 🇮🇩 |
-| **PROXY-SG** | Singapore | 🇸🇬 |
-| **PROXY-US** | US | 🇺🇸 |
-| **PROXY-WARP** | Cloudflare WARP | WARP-LB |
-| **AI** | OpenAI, Claude, dll | DIRECT |
-| **GOOGLE** | Google services | DIRECT |
-| **CHECK-IP** | IP check sites | PROXY-FREE |
-| **SOCIAL** | Telegram, Twitter, dll | DIRECT |
+| Group | Type | Isi |
+|---|---|---|
+| GLOBAL | select | catch-all: DIRECT + semua group |
+| PROXY-FREE | url-test | semua proxy free |
+| PROXY-ID | url-test | proxy Indonesia |
+| PROXY-SG | url-test | proxy Singapore |
+| PROXY-US | url-test | proxy US |
+| PROXY-WARP | select | Cloudflare WARP (via mixin) |
+| GOOGLE | select | DIRECT + semua group |
+| AI | select | DIRECT + semua group |
+| CHECK-IP | select | DIRECT + semua group |
+| SOCIAL | select | DIRECT + semua group |
 
 ## Rules
 
-```
-AI domains       → AI group
-Google domains   → GOOGLE group
-CHECK-IP domains → CHECK-IP group
-Social domains   → SOCIAL group
-MATCH            → GLOBAL (catch-all)
-```
+- Ads → REJECT
+- Private IP → DIRECT
+- CN sites/IP → DIRECT
+- Google → GOOGLE group
+- AI sites → AI group
+- IP check → CHECK-IP group
+- Social media → SOCIAL group
+- GitHub/Netflix → PROXY-FREE
+- Catch-all → GLOBAL
 
 ## Troubleshooting
 
 ```bash
-# Nikki gak jalan
+# Status
+/etc/init.d/nikki status
+
+# Log
 tail -20 /var/log/nikki/app.log
 
-# DNS gak jalan
+# Cek DNS hijack
 uci show nikki.proxy | grep dns
 
-# Proxy gak ke-deteksi
-curl -s -H "Authorization: Bearer <secret>" http://127.0.0.1:9090/proxies | python3 -m json.tool
+# Restart
+/etc/init.d/nikki restart
+
+# Update manual
+/usr/local/bin/update-proxy.sh
 ```
 
 ## File Structure
 
 ```
-openwrt/
-├── README.md          # Panduan ini
-├── setup.sh           # Quick install script
-└── warp-setup.md      # Panduan setup WARP
+/etc/nikki/
+├── mixin.yaml                          ← base config (DNS, rules, ports)
+├── profiles/
+│   └── free-proxy-singbox.yml          ← proxy list + groups (auto-update)
+└── ...
 ```
