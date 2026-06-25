@@ -13,7 +13,7 @@ proxies:
   - name: WAN2
     type: direct
     interface-name: eth1
-  - name: BLOCKED
+  - name: REJECT
     type: reject
 
 dns:
@@ -53,6 +53,10 @@ proxy-groups:
     type: select
     proxies:
       - REJECT
+      - DIRECT
+      - GLOBAL
+      - PROXY-FREE
+      - PROXY-WARP
 
   # WAN selection
   - name: WAN
