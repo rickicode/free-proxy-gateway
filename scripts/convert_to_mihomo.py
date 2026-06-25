@@ -1,79 +1,77 @@
 #!/usr/bin/env python3
-"""Convert sing-box output to mihomo (Clash Meta) YAML format."""
+"""Convert free-proxy-singbox live-proxies.json to mihomo (Clash Meta) YAML."""
 
 import json
 import sys
 from pathlib import Path
 
 
-def convert_outbound(outbound: dict) -> dict | None:
+def convert_outbound(ob: dict) -> dict | None:
     """Convert sing-box outbound to mihomo proxy dict."""
-    t = outbound.get("type")
-    tag = outbound.get("tag", "")
-    server = outbound.get("server", "")
-    port = outbound.get("server_port", 0)
+    t = ob.get("type", "")
+    tag = ob.get("tag", "")
+    server = ob.get("server", "")
+    port = ob.get("server_port", 0)
 
     if not server or not port:
         return None
 
     if t == "trojan":
-        tls = outbound.get("tls", {})
+        tls = ob.get("tls", {})
         return {
             "name": tag,
             "type": "trojan",
             "server": server,
             "port": port,
-            "password": outbound.get("password", ""),
+            "password": ob.get("password", ""),
             "sni": tls.get("server_name", server),
             "skip-cert-verify": tls.get("insecure", True),
             "udp": True,
         }
 
     if t == "vless":
-        tls = outbound.get("tls", {})
-        transport = outbound.get("transport", {})
+        tls = ob.get("tls", {})
+        transport = ob.get("transport", {})
         proxy = {
             "name": tag,
             "type": "vless",
             "server": server,
             "port": port,
-            "uuid": outbound.get("uuid", ""),
+            "uuid": ob.get("uuid", ""),
             "tls": tls.get("enabled", False),
             "servername": tls.get("server_name", ""),
             "skip-cert-verify": tls.get("insecure", True),
             "udp": True,
         }
-        if outbound.get("flow"):
-            proxy["flow"] = outbound["flow"]
+        if ob.get("flow"):
+            proxy["flow"] = ob["flow"]
         if transport:
             tp = transport.get("type", "")
             if tp == "ws":
                 proxy["network"] = "ws"
-                proxy["ws-opts"] = {
-                    "path": transport.get("path", "/"),
-                }
-                if transport.get("headers", {}).get("Host"):
-                    proxy["ws-opts"]["headers"] = {
-                        "Host": transport["headers"]["Host"]
-                    }
+                ws = {"path": transport.get("path", "/")}
+                host = transport.get("headers", {}).get("Host")
+                if host:
+                    ws["headers"] = {"Host": host}
+                proxy["ws-opts"] = ws
             elif tp == "grpc":
                 proxy["network"] = "grpc"
                 proxy["grpc-opts"] = {
-                    "grpc-service-name": transport.get("service_name", ""),
+                    "grpc-service-name": transport.get("service_name", "")
                 }
         return proxy
 
     if t == "vmess":
-        tls = outbound.get("tls", {})
-        transport = outbound.get("transport", {})
+        tls = ob.get("tls", {})
+        transport = ob.get("transport", {})
         proxy = {
             "name": tag,
             "type": "vmess",
             "server": server,
             "port": port,
-            "uuid": outbound.get("uuid", ""),
-            "alterId": outbound.get("alter_id", 0),
-            "cipher": outbound.get("cipher", "auto"),
+            "uuid": ob.get("uuid", ""),
+            "alterId": ob.get("alter_id", 0),
+            "cipher": ob.get("cipher", "auto"),
             "tls": tls.get("enabled", False),
             "skip-cert-verify": tls.get("insecure", True),
             "udp": True,
@@ -84,13 +82,11 @@ def convert_outbound(outbound: dict) -> dict | None:
             tp = transport.get("type", "")
             if tp == "ws":
                 proxy["network"] = "ws"
-                proxy["ws-opts"] = {
-                    "path": transport.get("path", "/"),
-                }
-                if transport.get("headers", {}).get("Host"):
-                    proxy["ws-opts"]["headers"] = {
-                        "Host": transport["headers"]["Host"]
-                    }
+                ws = {"path": transport.get("path", "/")}
+                host = transport.get("headers", {}).get("Host")
+                if host:
+                    ws["headers"] = {"Host": host}
+                proxy["ws-opts"] = ws
         return proxy
 
     if t == "shadowsocks":
@@ -99,140 +95,126 @@ def convert_outbound(outbound: dict) -> dict | None:
             "type": "ss",
             "server": server,
             "port": port,
-            "cipher": outbound.get("method", outbound.get("cipher", "auto")),
-            "password": outbound.get("password", ""),
+            "cipher": ob.get("method", ob.get("cipher", "auto")),
+            "password": ob.get("password", ""),
             "udp": True,
         }
 
     if t == "hysteria2":
-        tls = outbound.get("tls", {})
+        tls = ob.get("tls", {})
         proxy = {
             "name": tag,
             "type": "hysteria2",
             "server": server,
             "port": port,
-            "password": outbound.get("password", ""),
+            "password": ob.get("password", ""),
             "skip-cert-verify": tls.get("insecure", True),
             "udp": True,
         }
         if tls.get("server_name"):
             proxy["sni"] = tls["server_name"]
-        if outbound.get("bandwidth", {}).get("up"):
-            proxy["up"] = outbound["bandwidth"]["up"]
-        if outbound.get("bandwidth", {}).get("down"):
-            proxy["down"] = outbound["bandwidth"]["down"]
         return proxy
 
-    # Unknown type, skip
     return None
 
 
-def build_mihomo_config(data: dict) -> str:
-    """Build mihomo YAML config from singbox data."""
-    outbounds = data.get("outbounds", [])
+def build_mihomo(data: dict) -> str:
+    proxies_input = data.get("proxies", [])
+    groups_data = data.get("groups", {})
 
-    # Convert proxies
+    # Convert proxies using the nested outbound
     proxies = []
     proxy_names = []
-    group_map = {}  # tag -> list of proxy names
-
-    for ob in outbounds:
-        tag = ob.get("tag", "")
-        t = ob.get("type")
-
-        # Skip non-proxy outbounds
-        if t in ("direct", "block", "dns", "selector", "urltest"):
-            continue
-
+    for entry in proxies_input:
+        ob = entry.get("outbound", entry)
         proxy = convert_outbound(ob)
         if proxy:
             proxies.append(proxy)
             proxy_names.append(proxy["name"])
 
-    # Build groups from data.groups
-    groups_data = data.get("groups", {})
+    # Build proxy groups
     proxy_groups = []
 
-    # Main selector group
+    # Main selector with all proxies
     if proxy_names:
         proxy_groups.append({
             "name": "PROXY-FREE",
             "type": "select",
-            "proxies": proxy_names[:100],  # Limit to 100 for usability
+            "proxies": proxy_names,
         })
 
-    # Country-based groups
-    for group_name, group_tags in groups_data.items():
-        if isinstance(group_tags, list) and group_tags:
-            # Map tags to proxy names
-            matching = [t for t in group_tags if t in proxy_names]
+    # Country-based auto-test groups
+    for gname, gtags in groups_data.items():
+        if isinstance(gtags, list) and gtags:
+            matching = [t for t in gtags if t in proxy_names]
             if matching:
                 proxy_groups.append({
-                    "name": group_name,
+                    "name": gname,
                     "type": "url-test",
-                    "proxies": matching[:50],
+                    "proxies": matching,
                     "url": "http://www.gstatic.com/generate_204",
                     "interval": 300,
                 })
 
-    # Build YAML manually (avoid PyYAML dependency)
-    lines = []
-    lines.append("# Auto-generated by free-proxy-singbox")
-    lines.append("# Source: https://github.com/rickicode/free-proxy-singbox")
-    lines.append(f"# Generated: {data.get('generated_at', 'unknown')}")
-    lines.append(f"# Live proxies: {data.get('live_count', len(proxy_names))}")
-    lines.append("")
-    lines.append("mixed-port: 7890")
-    lines.append("allow-lan: true")
-    lines.append("bind-address: '*'")
-    lines.append("mode: rule")
-    lines.append("log-level: warning")
-    lines.append("ipv6: false")
-    lines.append("")
-    lines.append("dns:")
-    lines.append("  enable: true")
-    lines.append("  listen: :1053")
-    lines.append("  enhanced-mode: fake-ip")
-    lines.append("  fake-ip-range: 198.18.0.1/16")
-    lines.append("  default-nameserver:")
-    lines.append("    - 223.5.5.5")
-    lines.append("    - 8.8.8.8")
-    lines.append("  nameserver:")
-    lines.append("    - https://223.5.5.5/dns-query")
-    lines.append("    - https://1.1.1.1/dns-query")
-    lines.append("  nameserver-policy:")
-    lines.append("    'geosite:private,cn': 223.5.5.5")
-    lines.append("    'geosite:geolocation-!cn': https://1.1.1.1/dns-query")
-    lines.append("")
+    # Build YAML lines
+    lines = [
+        "# Auto-generated by free-proxy-singbox",
+        "# Source: https://github.com/rickicode/free-proxy-singbox",
+        f"# Generated: {data.get('generated_at', 'unknown')}",
+        f"# Live proxies: {data.get('live_count', len(proxy_names))}",
+        "",
+        "mixed-port: 7890",
+        "allow-lan: true",
+        "bind-address: '*'",
+        "mode: rule",
+        "log-level: warning",
+        "ipv6: false",
+        "",
+        "dns:",
+        "  enable: true",
+        "  listen: :1053",
+        "  enhanced-mode: fake-ip",
+        "  fake-ip-range: 198.18.0.1/16",
+        "  default-nameserver:",
+        "    - 223.5.5.5",
+        "    - 8.8.8.8",
+        "  nameserver:",
+        "    - https://223.5.5.5/dns-query",
+        "    - https://1.1.1.1/dns-query",
+        "  nameserver-policy:",
+        "    'geosite:private,cn': 223.5.5.5",
+        "    'geosite:geolocation-!cn': https://1.1.1.1/dns-query",
+        "",
+        "proxies:",
+    ]
 
-    # Proxies
-    lines.append("proxies:")
     for p in proxies:
         lines.append(f"  - {json.dumps(p, ensure_ascii=False)}")
-    lines.append("")
 
-    # Proxy groups
+    lines.append("")
     lines.append("proxy-groups:")
     for g in proxy_groups:
         lines.append(f"  - {json.dumps(g, ensure_ascii=False)}")
-    lines.append("")
 
-    # Rules
+    lines.append("")
     lines.append("rules:")
-    lines.append("  - GEOSITE,category-ads-all,REJECT")
-    lines.append("  - GEOSITE,private,DIRECT")
-    lines.append("  - GEOIP,private,DIRECT,no-resolve")
-    lines.append("  - GEOSITE,cn,DIRECT")
-    lines.append("  - GEOIP,cn,DIRECT,no-resolve")
-    lines.append("  - GEOSITE,google,PROXY-FREE")
-    lines.append("  - GEOSITE,github,PROXY-FREE")
-    lines.append("  - GEOSITE,telegram,PROXY-FREE")
-    lines.append("  - GEOSITE,youtube,PROXY-FREE")
-    lines.append("  - GEOSITE,netflix,PROXY-FREE")
-    lines.append("  - GEOSITE,openai,PROXY-FREE")
-    lines.append("  - MATCH,PROXY-FREE")
-    lines.append("")
+    for r in [
+        "GEOSITE,category-ads-all,REJECT",
+        "GEOSITE,private,DIRECT",
+        "GEOIP,private,DIRECT,no-resolve",
+        "GEOSITE,cn,DIRECT",
+        "GEOIP,cn,DIRECT,no-resolve",
+        "GEOSITE,google,PROXY-FREE",
+        "GEOSITE,github,PROXY-FREE",
+        "GEOSITE,telegram,PROXY-FREE",
+        "GEOSITE,youtube,PROXY-FREE",
+        "GEOSITE,netflix,PROXY-FREE",
+        "GEOSITE,openai,PROXY-FREE",
+        "MATCH,PROXY-FREE",
+    ]:
+        lines.append(f"  - {r}")
 
+    lines.append("")
     return "\n".join(lines)
 
 
@@ -245,9 +227,9 @@ def main():
     output_path = Path(sys.argv[2])
 
     data = json.loads(input_path.read_text())
-    yaml_content = build_mihomo_config(data)
-    output_path.write_text(yaml_content)
-    print(f"Written {output_path} ({len(yaml_content)} bytes)")
+    content = build_mihomo(data)
+    output_path.write_text(content)
+    print(f"Written {output_path} ({len(content)} bytes, {content.count(chr(10))} lines)")
 
 
 if __name__ == "__main__":
