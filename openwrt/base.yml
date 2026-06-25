@@ -276,6 +276,4 @@ rules:
   - RULE-SET,social,SOCIAL
 
   # Catch-all
-  - GEOSITE,github,PROXY-FREE
-  - GEOSITE,netflix,PROXY-FREE
   - MATCH,GLOBAL
