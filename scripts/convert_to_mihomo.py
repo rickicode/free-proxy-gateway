@@ -330,6 +330,9 @@ def build_mihomo(data: dict) -> str:
     proxy_groups.append({"name": "CHECK-IP", "type": "select", "proxies": ["DIRECT", "PROXY-FREE"] + [g["name"] for g in proxy_groups]})
     proxy_groups.append({"name": "SOCIAL", "type": "select", "proxies": ["DIRECT"] + [g["name"] for g in proxy_groups]})
 
+    # HIJINETWORK = catch-all group for traffic not matched by rules
+    proxy_groups.append({"name": "HIJINETWORK", "type": "select", "proxies": ["DIRECT"] + [g["name"] for g in proxy_groups]})
+
     # GLOBAL
     group_names = [g["name"] for g in proxy_groups]
     proxy_groups.insert(0, {"name": "GLOBAL", "type": "select", "proxies": ["DIRECT"] + group_names})
@@ -457,7 +460,7 @@ def build_mihomo(data: dict) -> str:
     lines.append("  - GEOSITE,netflix,PROXY-FREE")
 
     # Fallback
-    lines.append("  - MATCH,GLOBAL")
+    lines.append("  - MATCH,HIJINETWORK")
 
     lines.append("")
     return "\n".join(lines)
