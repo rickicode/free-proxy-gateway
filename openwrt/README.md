@@ -2,6 +2,15 @@
 
 Panduan lengkap setup OpenWrt sebagai VPN gateway dengan proxy otomatis dari free-proxy-singbox.
 
+## Prerequisites
+
+**Nikki harus sudah terinstall di OpenWrt sebelum menjalankan setup.**
+
+```bash
+# Install Nikki + LuCI (kalau belum)
+apk add nikki luci-app-nikki
+```
+
 ## Arsitektur
 
 ```
@@ -19,26 +28,31 @@ OpenWrt Gateway (Nikki + Mihomo)
 
 ## Quick Start (1 Command)
 
+**Pastikan Nikki sudah terinstall dulu!**
+
 ```bash
 wget -O setup.sh https://raw.githubusercontent.com/rickicode/free-proxy-singbox/main/openwrt/setup.sh && ash setup.sh
 ```
 
+Script ini akan:
+1. Download proxy config dari repo ini (auto-update tiap 12 jam)
+2. Konfigurasi Nikki via UCI (TPROXY, DNS hijack)
+3. Buka firewall WAN
+4. Setup cron auto-update
+
 ## Manual Install
 
-### 1. Install Nikki (Mihomo wrapper untuk OpenWrt)
+### 1. Install Nikki
 
 ```bash
-# Tambah feed Nikki
 wget -O - https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/feed.sh | ash
-
-# Install Nikki + LuCI
 apk add nikki luci-app-nikki
 ```
 
 ### 2. Download proxy config
 
 ```bash
-# Download dari repo ini
+mkdir -p /etc/nikki/profiles
 wget -O /etc/nikki/profiles/free-proxy-singbox.yml \
   https://raw.githubusercontent.com/rickicode/free-proxy-singbox/main/output/live-proxies.mihomo.yml
 ```
@@ -50,24 +64,18 @@ Lihat [warp-setup.md](warp-setup.md)
 ### 4. Konfigurasi Nikki via UCI
 
 ```bash
-# Set profile
 uci set nikki.config.profile="file:free-proxy-singbox.yml"
 uci set nikki.config.enabled=1
-
-# Proxy mode
 uci set nikki.proxy.tcp_mode=tproxy
 uci set nikki.proxy.udp_mode=tproxy
 uci set nikki.proxy.ipv4_dns_hijack=1
 uci set nikki.proxy.lan_proxy=1
-
-# API
 uci set nikki.mixin.api_listen="[::]:9090"
 uci set nikki.mixin.api_secret="ganti-password"
-
 uci commit nikki
 ```
 
-### 5. Firewall (buka akses dari WAN)
+### 5. Firewall
 
 ```bash
 uci set firewall.@zone[1].input=ACCEPT
@@ -80,7 +88,7 @@ uci commit firewall
 /etc/init.d/nikki restart
 ```
 
-### 7. Auto-update proxy list (cron)
+### 7. Auto-update (cron)
 
 ```bash
 cat > /usr/local/bin/update-proxy.sh << 'EOF'
@@ -98,14 +106,10 @@ else
 fi
 EOF
 chmod +x /usr/local/bin/update-proxy.sh
-
-# Tiap 12 jam
 echo "0 */12 * * * /usr/local/bin/update-proxy.sh" >> /etc/crontabs/root
 ```
 
 ## Dashboard
-
-Setelah Nikki jalan, buka:
 
 ```
 http://<IP-OpenWrt>:9090/ui/?secret=<password>
@@ -138,20 +142,14 @@ MATCH            → GLOBAL (catch-all)
 
 ## Troubleshooting
 
-### Nikki gak jalan
 ```bash
+# Nikki gak jalan
 tail -20 /var/log/nikki/app.log
-tail -20 /var/log/nikki/core.log
-```
 
-### DNS gak jalan
-```bash
+# DNS gak jalan
 uci show nikki.proxy | grep dns
-nslookup google.com 192.168.x.1
-```
 
-### Proxy gak ke-deteksi
-```bash
+# Proxy gak ke-deteksi
 curl -s -H "Authorization: Bearer <secret>" http://127.0.0.1:9090/proxies | python3 -m json.tool
 ```
 
@@ -161,7 +159,5 @@ curl -s -H "Authorization: Bearer <secret>" http://127.0.0.1:9090/proxies | pyth
 openwrt/
 ├── README.md          # Panduan ini
 ├── setup.sh           # Quick install script
-├── warp-setup.md      # Panduan setup WARP
-└── scripts/
-    └── update-proxy.sh  # Script auto-update proxy
+└── warp-setup.md      # Panduan setup WARP
 ```
