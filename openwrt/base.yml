@@ -1,5 +1,5 @@
 # Base config for Nikki (mixin)
-# Fixed: ports, DNS, rules, proxy-groups, proxy-providers
+# Fixed: ports, DNS, rules, proxy-groups, proxy-providers, adblock
 # Proxy files: warp.yml (local) + free-proxies.yml (repo)
 
 mixed-port: 7890
