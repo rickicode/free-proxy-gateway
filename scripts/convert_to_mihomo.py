@@ -94,11 +94,7 @@ def convert_outbound(ob: dict) -> dict | None:
     return None
 
 
-# ============================================================
-# Comprehensive Check-IP domain list
-# ============================================================
 CHECK_IP_RULES = [
-    # --- Plain text IP services ---
     "DOMAIN,ifconfig.me,CHECK-IP",
     "DOMAIN-SUFFIX,ifconfig.me,CHECK-IP",
     "DOMAIN,ifconfig.co,CHECK-IP",
@@ -125,8 +121,6 @@ CHECK_IP_RULES = [
     "DOMAIN,myip.dnsomatic.com,CHECK-IP",
     "DOMAIN,traceip.net,CHECK-IP",
     "DOMAIN-SUFFIX,traceip.net,CHECK-IP",
-
-    # --- JSON API IP services ---
     "DOMAIN,api.ipify.org,CHECK-IP",
     "DOMAIN-SUFFIX,ipify.org,CHECK-IP",
     "DOMAIN,api.ip.sb,CHECK-IP",
@@ -178,8 +172,6 @@ CHECK_IP_RULES = [
     "DOMAIN,ip.bsc.cool,CHECK-IP",
     "DOMAIN,ip.900cha.com,CHECK-IP",
     "DOMAIN,ip.useragentinfo.com,CHECK-IP",
-
-    # --- Web-based IP checker sites ---
     "DOMAIN,whatismyipaddress.com,CHECK-IP",
     "DOMAIN-SUFFIX,whatismyipaddress.com,CHECK-IP",
     "DOMAIN,myip.com,CHECK-IP",
@@ -271,7 +263,6 @@ CHECK_IP_RULES = [
     "DOMAIN,myip.ipadressen.se,CHECK-IP",
     "DOMAIN,ipinfo.io,CHECK-IP",
     "DOMAIN,ip.me,CHECK-IP",
-    "DOMAIN,ipinfo.io,CHECK-IP",
     "DOMAIN-SUFFIX,dnsleaktest.com,CHECK-IP",
     "DOMAIN-SUFFIX,speedtest.net,CHECK-IP",
     "DOMAIN,speedtest.net,CHECK-IP",
@@ -332,12 +323,9 @@ def build_mihomo(data: dict) -> str:
     proxy_groups.append({"name": "CHECK-IP", "type": "select", "proxies": ["DIRECT"] + [g["name"] for g in proxy_groups]})
     proxy_groups.append({"name": "SOCIAL", "type": "select", "proxies": ["DIRECT"] + [g["name"] for g in proxy_groups]})
 
-    # GLOBAL
+    # GLOBAL = catch-all group for traffic not matched by rules
     group_names = [g["name"] for g in proxy_groups]
     proxy_groups.insert(0, {"name": "GLOBAL", "type": "select", "proxies": ["DIRECT"] + group_names})
-
-    # HIJINETWORK = catch-all group for traffic not matched by rules (first in list)
-    proxy_groups.insert(0, {"name": "HIJINETWORK", "type": "select", "proxies": ["DIRECT"] + [g["name"] for g in proxy_groups if g["name"] != "HIJINETWORK"]})
 
     # Build YAML
     lines = [
@@ -361,19 +349,11 @@ def build_mihomo(data: dict) -> str:
         lines.append(f"  - {json.dumps(g, ensure_ascii=False)}")
 
     lines.extend(["", "rules:"])
-
-    # Block ads
     lines.append("  - GEOSITE,category-ads-all,REJECT")
-
-    # Private / LAN
     lines.append("  - GEOSITE,private,DIRECT")
     lines.append("  - GEOIP,private,DIRECT,no-resolve")
-
-    # China direct
     lines.append("  - GEOSITE,cn,DIRECT")
     lines.append("  - GEOIP,cn,DIRECT,no-resolve")
-
-    # Google → GOOGLE group
     lines.append("  - GEOSITE,google,GOOGLE")
     lines.append("  - GEOSITE,googlefcm,GOOGLE")
     lines.append("  - DOMAIN-SUFFIX,google.com,GOOGLE")
@@ -386,8 +366,6 @@ def build_mihomo(data: dict) -> str:
     lines.append("  - DOMAIN-SUFFIX,googleusercontent.com,GOOGLE")
     lines.append("  - DOMAIN-SUFFIX,googleadservices.com,GOOGLE")
     lines.append("  - DOMAIN-SUFFIX,googlesyndication.com,GOOGLE")
-
-    # AI → AI group
     lines.append("  - GEOSITE,openai,AI")
     lines.append("  - DOMAIN-SUFFIX,openai.com,AI")
     lines.append("  - DOMAIN-SUFFIX,chatgpt.com,AI")
@@ -433,16 +411,12 @@ def build_mihomo(data: dict) -> str:
     lines.append("  - DOMAIN-SUFFIX,suno.ai,AI")
     lines.append("  - DOMAIN-SUFFIX,runwayml.com,AI")
     lines.append("  - DOMAIN-SUFFIX,synthesia.io,AI")
-    lines.append("  - DOMAIN-SUFFIX,perplexity.ai,AI")
     lines.append("  - DOMAIN-SUFFIX,search.brave.com,AI")
     lines.append("  - DOMAIN-SUFFIX,claude.com,AI")
 
-    # Check IP → CHECK-IP group (comprehensive, 100+ domains)
     for rule in CHECK_IP_RULES:
         lines.append(f"  - {rule}")
 
-
-    # Social Media → SOCIAL group
     lines.append("  - GEOSITE,telegram,SOCIAL")
     lines.append("  - GEOSITE,twitter,SOCIAL")
     lines.append("  - GEOSITE,facebook,SOCIAL")
@@ -456,13 +430,9 @@ def build_mihomo(data: dict) -> str:
     lines.append("  - DOMAIN-SUFFIX,threads.net,SOCIAL")
     lines.append("  - DOMAIN-SUFFIX,mastodon.social,SOCIAL")
     lines.append("  - DOMAIN-SUFFIX,bsky.app,SOCIAL")
-
-    # Other
     lines.append("  - GEOSITE,github,PROXY-FREE")
     lines.append("  - GEOSITE,netflix,PROXY-FREE")
-
-    # Fallback
-    lines.append("  - MATCH,HIJINETWORK")
+    lines.append("  - MATCH,GLOBAL")
 
     lines.append("")
     return "\n".join(lines)
