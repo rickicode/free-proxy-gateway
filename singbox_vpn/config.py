@@ -14,7 +14,7 @@ DEFAULT_CONFIG = {
         "mtu": 1280,
     },
     "proxy": {
-        "github_raw": "https://raw.githubusercontent.com/rickicode/free-proxy-singbox/main/output/live-proxies.json",
+        "github_raw": "https://raw.githubusercontent.com/rickicode/free-proxy-gateway/main/output/live-proxies.json",
         "max_free": 40,
         "clash_secret": "hijinet",
         "target_countries": ["US", "SG", "ID", "JP", "KR", "HK", "DE", "FR", "GB", "CA", "AU", "IN", "NL", "BR"],

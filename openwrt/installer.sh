@@ -1,5 +1,5 @@
 #!/bin/sh
-# free-proxy-singbox — Installer
+# free-proxy-gateway — Installer
 # Auto-install: Nikki, wgcf, wireguard-tools, prox-menu, config, WARP, cron
 #
 # Usage:
@@ -7,7 +7,7 @@
 #   ash installer.sh --force  — force reinstall dependencies
 set -e
 
-REPO="https://raw.githubusercontent.com/rickicode/free-proxy-singbox/refs/heads/main"
+REPO="https://raw.githubusercontent.com/rickicode/free-proxy-gateway/refs/heads/main"
 FORCE=0
 
 [ "$1" = "--force" ] && FORCE=1
@@ -29,7 +29,7 @@ info() { echo "  ${C}→${N} $1"; }
 
 echo ""
 echo "${B}╔══════════════════════════════════════════════════╗${N}"
-echo "${B}║${W}       free-proxy-singbox — Installer              ${B}║${N}"
+echo "${B}║${W}       free-proxy-gateway — Installer              ${B}║${N}"
 echo "${B}╚══════════════════════════════════════════════════╝${N}"
 echo ""
 
@@ -116,7 +116,7 @@ echo ""
 # ── BASE CONFIG ─────────────────────────────────
 echo -n "  Base config (mixin): "
 mkdir -p /etc/nikki
-curl -sL "$REPO/openwrt/base.yml" -o /etc/nikki/mixin.yaml 2>/dev/null
+wget -qO /etc/nikki/mixin.yaml "$REPO/openwrt/base.yml" 2>/dev/null || curl -sL "$REPO/openwrt/base.yml" -o /etc/nikki/mixin.yaml 2>/dev/null
 if head -1 /etc/nikki/mixin.yaml | grep -q "Base config"; then
   ok "mixin.yaml ($(wc -l < /etc/nikki/mixin.yaml) lines)"
 else
@@ -127,7 +127,7 @@ fi
 # ── PROXY LIST ──────────────────────────────────
 echo -n "  Proxy list: "
 mkdir -p /etc/nikki/run/providers
-curl -sL "$REPO/output/live-proxies.mihomo.yml" -o /etc/nikki/run/providers/free-proxies.yml 2>/dev/null
+wget -qO /etc/nikki/run/providers/free-proxies.yml "$REPO/output/live-proxies.mihomo.yml" 2>/dev/null || curl -sL "$REPO/output/live-proxies.mihomo.yml" -o /etc/nikki/run/providers/free-proxies.yml 2>/dev/null
 if head -1 /etc/nikki/run/providers/free-proxies.yml | grep -q "Auto-generated"; then
   ok "free-proxies.yml ($(wc -l < /etc/nikki/run/providers/free-proxies.yml) lines)"
 else
@@ -166,8 +166,8 @@ echo ""
 echo -n "  update-proxy.sh: "
 cat > /usr/local/bin/update-proxy.sh << 'EOF'
 #!/bin/sh
-BASE_URL="https://api.github.com/repos/rickicode/free-proxy-singbox/contents"
-RAW_URL="https://raw.githubusercontent.com/rickicode/free-proxy-singbox/refs/heads/main"
+BASE_URL="https://api.github.com/repos/rickicode/free-proxy-gateway/contents"
+RAW_URL="https://raw.githubusercontent.com/rickicode/free-proxy-gateway/refs/heads/main"
 CHANGED=0
 curl -sL -H "Accept: application/vnd.github.v3.raw" "$BASE_URL/openwrt/base.yml" -o /etc/nikki/mixin.yaml.tmp 2>/dev/null
 if head -1 /etc/nikki/mixin.yaml.tmp | grep -q "Base config"; then

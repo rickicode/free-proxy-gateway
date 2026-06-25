@@ -1,4 +1,4 @@
-# free-proxy-singbox
+# free-proxy-gateway
 
 Proxy scanner + gateway manager. Mengumpulkan proxy publik yang live dan menyediakan config siap pakai.
 
@@ -28,7 +28,7 @@ Proxy scanner + gateway manager. Mengumpulkan proxy publik yang live dan menyedi
 ### Install
 
 ```bash
-ash <(curl -sL https://raw.githubusercontent.com/rickicode/free-proxy-singbox/refs/heads/main/openwrt/installer.sh)
+ash <(curl -sL https://raw.githubusercontent.com/rickicode/free-proxy-gateway/refs/heads/main/openwrt/installer.sh)
 ```
 
 Installer otomatis install: Nikki, wgcf, wireguard-tools, python3, config, WARP, cron, `prox-menu`.
@@ -80,8 +80,8 @@ Detail: [openwrt/README.md](openwrt/README.md)
 
 ```bash
 # Clone repo
-git clone https://github.com/rickicode/free-proxy-singbox.git
-cd free-proxy-singbox
+git clone https://github.com/rickicode/free-proxy-gateway.git
+cd free-proxy-gateway
 
 # Install dependencies
 pip install -r requirements.txt  # atau: python3 setup.py install
@@ -117,7 +117,7 @@ python3 scripts/convert_to_mihomo.py output/live-proxies.json output/live-proxie
 
 ### GitHub Actions
 
-Workflow `.github/workflows/free-proxy-singbox.yml`:
+Workflow `.github/workflows/free-proxy-gateway.yml`:
 - Trigger: schedule tiap 12 jam + manual
 - 4 shard paralel → merge → commit
 - Output auto-update ke repo
@@ -163,7 +163,7 @@ Workflow `.github/workflows/free-proxy-singbox.yml`:
 ## File Structure
 
 ```
-free-proxy-singbox/
+free-proxy-gateway/
 ├── freeproxy.py                — Proxy scanner
 ├── scripts/
 │   ├── convert_to_mihomo.py    — Convert to mihomo format

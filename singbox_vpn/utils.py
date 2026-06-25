@@ -24,7 +24,7 @@ ADGUARD_BIN    = Path("/opt/AdGuardHome/AdGuardHome")
 FIX_NAT_SCRIPT = Path("/usr/local/bin/fix-nat.sh")
 RULES_DIR      = Path("/opt/rules/compiled")
 
-GITHUB_RAW     = "https://raw.githubusercontent.com/rickicode/free-proxy-singbox/main/output/live-proxies.json"
+GITHUB_RAW     = "https://raw.githubusercontent.com/rickicode/free-proxy-gateway/main/output/live-proxies.json"
 
 # ── Colors ────────────────────────────────────────────────────────────
 class C:

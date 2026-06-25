@@ -138,7 +138,7 @@ def build_warp_yaml(creds):
     """Generate mihomo YAML for WARP proxies + groups."""
     lines = [
         "# Auto-generated WARP proxies",
-        "# Source: https://github.com/rickicode/free-proxy-singbox",
+        "# Source: https://github.com/rickicode/free-proxy-gateway",
         f"# Generated: {time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}",
         "",
         "proxies:",

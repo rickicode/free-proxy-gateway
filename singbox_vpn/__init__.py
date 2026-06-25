@@ -2,7 +2,7 @@
 
 Replicates exact setup from gateway server:
 - 2x WARP WireGuard endpoints inside sing-box
-- Auto fetch live proxies from free-proxy-singbox repo
+- Auto fetch live proxies from free-proxy-gateway repo
 - TProxy NAT per-interface + dnsmasq DHCP
 - Status dashboard + Doctor diagnostics
 """

@@ -2,7 +2,7 @@
 
 ## Tujuan repo
 
-`free-proxy-singbox` adalah repo producer hasil scan proxy live.
+`free-proxy-gateway` adalah repo producer hasil scan proxy live.
 
 Repo ini dipakai untuk:
 

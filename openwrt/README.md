@@ -5,7 +5,7 @@ Setup OpenWrt router sebagai proxy gateway pakai **Nikki** (mihomo engine).
 ## Quick Start (1 Command)
 
 ```bash
-ash <(curl -sL https://raw.githubusercontent.com/rickicode/free-proxy-singbox/refs/heads/main/openwrt/installer.sh)
+ash <(curl -sL https://raw.githubusercontent.com/rickicode/free-proxy-gateway/refs/heads/main/openwrt/installer.sh)
 ```
 
 **Installer otomatis install:**
@@ -26,7 +26,7 @@ ash <(curl -sL https://raw.githubusercontent.com/rickicode/free-proxy-singbox/re
 **Force reinstall dependencies:**
 
 ```bash
-ash <(curl -sL https://raw.githubusercontent.com/rickicode/free-proxy-singbox/refs/heads/main/openwrt/installer.sh) --force
+ash <(curl -sL https://raw.githubusercontent.com/rickicode/free-proxy-gateway/refs/heads/main/openwrt/installer.sh) --force
 ```
 
 ## Menu (Setelah Install)
@@ -55,7 +55,7 @@ prox-menu
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│  GitHub Repo (free-proxy-singbox)                    │
+│  GitHub Repo (free-proxy-gateway)                    │
 │  ├── output/live-proxies.mihomo.yml — proxy list    │
 │  ├── openwrt/base.yml — mixin config                │
 │  └── openwrt/rules/*.yml — rule providers           │

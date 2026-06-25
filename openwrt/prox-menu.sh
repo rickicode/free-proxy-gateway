@@ -1,9 +1,9 @@
 #!/bin/sh
 # prox-menu — OpenWrt Proxy Manager
-# Interactive menu for managing free-proxy-singbox
+# Interactive menu for managing free-proxy-gateway
 # Install: ash installer.sh (auto-installs to /usr/bin/prox-menu)
 
-REPO="https://raw.githubusercontent.com/rickicode/free-proxy-singbox/refs/heads/main"
+REPO="https://raw.githubusercontent.com/rickicode/free-proxy-gateway/refs/heads/main"
 
 # Colors (busybox ash compatible)
 ESC=$(printf '\33')

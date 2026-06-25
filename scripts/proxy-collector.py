@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 /opt/proxy-collector.py
-Pull pre-verified live proxies from free-proxy-singbox GitHub repo and update
+Pull pre-verified live proxies from free-proxy-gateway GitHub repo and update
 sing-box config. No re-testing needed — all proxies already pass TCP + live
 test + GeoIP on GitHub Actions.
 
@@ -20,7 +20,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 # ── Config ──────────────────────────────────────────────────────────────────
 CONFIG        = "/etc/sing-box/config.json"
 SINGBOX       = "/usr/local/bin/sing-box"
-GITHUB_RAW    = "https://raw.githubusercontent.com/rickicode/free-proxy-singbox/main/output/live-proxies.json"
+GITHUB_RAW    = "https://raw.githubusercontent.com/rickicode/free-proxy-gateway/main/output/live-proxies.json"
 GW_CFG        = "/opt/gateway-config.json"
 STATE_FILE    = "/opt/.proxy-collector-state.json"   # track last update timestamp
 LOG_FILE      = "/opt/proxy-collector-last-run.json"  # public-readable last run info

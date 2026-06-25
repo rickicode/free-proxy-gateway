@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Shared constants and functions for free-proxy-singbox.
+Shared constants and functions for free-proxy-gateway.
 
 This module contains common code used by:
 - freeproxy.py (scanner)

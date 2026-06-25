@@ -295,31 +295,31 @@ rule-providers:
   private:
     type: http
     behavior: classical
-    url: "https://raw.githubusercontent.com/rickicode/free-proxy-singbox/refs/heads/main/openwrt/rules/private.yml"
+    url: "https://raw.githubusercontent.com/rickicode/free-proxy-gateway/refs/heads/main/openwrt/rules/private.yml"
     path: ./ruleset/private.yml
     interval: 86400
   google:
     type: http
     behavior: classical
-    url: "https://raw.githubusercontent.com/rickicode/free-proxy-singbox/refs/heads/main/openwrt/rules/google.yml"
+    url: "https://raw.githubusercontent.com/rickicode/free-proxy-gateway/refs/heads/main/openwrt/rules/google.yml"
     path: ./ruleset/google.yml
     interval: 86400
   ai:
     type: http
     behavior: classical
-    url: "https://raw.githubusercontent.com/rickicode/free-proxy-singbox/refs/heads/main/openwrt/rules/ai.yml"
+    url: "https://raw.githubusercontent.com/rickicode/free-proxy-gateway/refs/heads/main/openwrt/rules/ai.yml"
     path: ./ruleset/ai.yml
     interval: 86400
   check-ip:
     type: http
     behavior: classical
-    url: "https://raw.githubusercontent.com/rickicode/free-proxy-singbox/refs/heads/main/openwrt/rules/check-ip.yml"
+    url: "https://raw.githubusercontent.com/rickicode/free-proxy-gateway/refs/heads/main/openwrt/rules/check-ip.yml"
     path: ./ruleset/check-ip.yml
     interval: 86400
   social:
     type: http
     behavior: classical
-    url: "https://raw.githubusercontent.com/rickicode/free-proxy-singbox/refs/heads/main/openwrt/rules/social.yml"
+    url: "https://raw.githubusercontent.com/rickicode/free-proxy-gateway/refs/heads/main/openwrt/rules/social.yml"
     path: ./ruleset/social.yml
     interval: 86400
 

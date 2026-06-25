@@ -1,6 +1,6 @@
 # AGENTS
 
-Aturan kerja agent untuk repo `free-proxy-singbox`.
+Aturan kerja agent untuk repo `free-proxy-gateway`.
 
 ## Scope
 
