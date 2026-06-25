@@ -55,7 +55,7 @@ proxy-groups:
       - WAN2
 
   - name: WAN-AUTO
-    type: url-test
+    type: load-balance
     proxies:
       - DIRECT
       - WAN2
@@ -68,6 +68,7 @@ proxy-groups:
     proxies:
       - DIRECT
       - WAN2
+      - WAN-AUTO
       - PROXY-FREE
       - PROXY-WARP
 
@@ -142,6 +143,8 @@ proxy-groups:
     proxies:
       - REJECT
       - DIRECT
+      - WAN2
+      - WAN-AUTO
       - GLOBAL
       - PROXY-FREE
       - PROXY-WARP
@@ -152,6 +155,7 @@ proxy-groups:
     proxies:
       - DIRECT
       - WAN2
+      - WAN-AUTO
       - GLOBAL
       - PROXY-FREE
       - PROXY-WARP
@@ -161,6 +165,7 @@ proxy-groups:
     proxies:
       - DIRECT
       - WAN2
+      - WAN-AUTO
       - GLOBAL
       - PROXY-FREE
       - PROXY-WARP
@@ -170,6 +175,7 @@ proxy-groups:
     proxies:
       - DIRECT
       - WAN2
+      - WAN-AUTO
       - GLOBAL
       - PROXY-FREE
       - PROXY-WARP
@@ -179,6 +185,7 @@ proxy-groups:
     proxies:
       - DIRECT
       - WAN2
+      - WAN-AUTO
       - GLOBAL
       - PROXY-FREE
       - PROXY-WARP
