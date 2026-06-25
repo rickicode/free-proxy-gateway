@@ -67,6 +67,10 @@ proxy-groups:
     type: select
     proxies:
       - WARP-LB
+      - WARP-1
+      - WARP-2
+      - WARP-3
+      - DIRECT
 
   - name: GOOGLE
     type: select
