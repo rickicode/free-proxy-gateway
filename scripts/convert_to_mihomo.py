@@ -10,28 +10,14 @@ import sys
 from pathlib import Path
 
 
-# Country code -> flag emoji
 def cc_to_flag(cc: str) -> str:
+    """Country code to flag emoji."""
     if len(cc) != 2 or not cc.isalpha():
         return cc
     return chr(0x1F1E6 + ord(cc[0]) - 65) + chr(0x1F1E6 + ord(cc[1]) - 65)
 
 
-# Extract country code from tag like "FREE-XX-NNNN-anything"
-_CC_RE = re.compile(r"^FREE-([A-Z]{2})-\d{4}-")
-
-
-def normalize_name(tag: str, counter: dict) -> str:
-    """Convert FREE-XX-NNNN-suffix to flag emoji with index."""
-    m = _CC_RE.match(tag)
-    if not m:
-        return tag
-    cc = m.group(1)
-    flag = cc_to_flag(cc)
-    counter[cc] = counter.get(cc, 0) + 1
-    if counter[cc] == 1:
-        return flag
-    return f"{flag} {counter[cc]}"
+CC_RE = re.compile(r"^FREE-([A-Z]{2})-\d{4}-")
 
 
 def convert_outbound(ob: dict) -> dict | None:
@@ -144,43 +130,39 @@ def build_mihomo(data: dict) -> str:
     proxies_input = data.get("proxies", [])
     groups_data = data.get("groups", {})
 
-    # Convert & rename proxies
+    # Build tag -> flag name mapping
+    tag_to_flag: dict[str, str] = {}
+    counter: dict[str, int] = {}
+
+    for entry in proxies_input:
+        ob = entry.get("outbound", entry)
+        tag = ob.get("tag", "")
+        m = CC_RE.match(tag)
+        if m and tag not in tag_to_flag:
+            cc = m.group(1)
+            flag = cc_to_flag(cc)
+            counter[cc] = counter.get(cc, 0) + 1
+            tag_to_flag[tag] = f"{flag} {counter[cc]}" if counter[cc] > 1 else flag
+
+    # Convert proxies with flag names
     proxies = []
     proxy_names = []
-    name_counter = {}  # cc -> count for numbering
-
     for entry in proxies_input:
         ob = entry.get("outbound", entry)
         proxy = convert_outbound(ob)
         if not proxy:
             continue
         tag = ob.get("tag", "")
-        name = normalize_name(tag, name_counter)
-        proxy["name"] = name
+        proxy["name"] = tag_to_flag.get(tag, tag)
         proxies.append(proxy)
-        proxy_names.append(name)
+        proxy_names.append(proxy["name"])
 
-    # Build proxy groups
+    # Build proxy groups using tag->flag mapping
     proxy_groups = []
-
-    # Country-based url-test groups (prepend)
     for gname, gtags in groups_data.items():
         if not isinstance(gtags, list) or not gtags:
             continue
-        matching = []
-        for t in gtags:
-            m = _CC_RE.match(t)
-            if m:
-                cc = m.group(1)
-                flag = cc_to_flag(cc)
-                # find matching renamed proxy
-                for pname in proxy_names:
-                    if pname == flag or pname.startswith(flag + " "):
-                        if pname not in matching:
-                            matching.append(pname)
-                        break
-            elif t in proxy_names:
-                matching.append(t)
+        matching = [tag_to_flag[t] for t in gtags if t in tag_to_flag]
         if matching:
             proxy_groups.append({
                 "name": gname,
