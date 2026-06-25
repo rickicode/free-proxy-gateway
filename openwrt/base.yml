@@ -225,13 +225,13 @@ rule-providers:
   oisd-big:
     type: http
     behavior: domain
-    url: "https://raw.githubusercontent.com/sjhgvr/oisd/main/domainswild.txt"
+    url: "https://big.oisd.nl/domainswild"
     path: ./ruleset/oisd-big.txt
     interval: 86400
   oisd-lite:
     type: http
     behavior: domain
-    url: "https://raw.githubusercontent.com/sjhgvr/oisd/main/domainswild-lite.txt"
+    url: "https://small.oisd.nl/domainswild"
     path: ./ruleset/oisd-lite.txt
     interval: 86400
   adguard:
