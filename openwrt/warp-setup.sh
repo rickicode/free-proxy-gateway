@@ -32,19 +32,16 @@ for i in $(seq 1 $COUNT); do
   work=$(mktemp -d)
   cd "$work"
 
-  # Clean old config and generate new unique keypair
-  rm -f wgcf-account.toml wgcf-profile.conf 2>/dev/null
-  # Generate fresh keypair
-  if ! wgcf generate 2>/dev/null; then
-    echo "generate failed"
-    rm -rf "$work"; continue
-  fi
-  # Register account
+  # Register account first (creates wgcf-account.toml)
   if ! wgcf register --accept-tos 2>/dev/null; then
     echo "rate limited"
     rm -rf "$work"; sleep 3; continue
   fi
   # Generate WireGuard config
+  if ! wgcf generate 2>/dev/null; then
+    echo "generate failed"
+    rm -rf "$work"; continue
+  fi
   if ! wgcf generate 2>/dev/null; then
     echo "config failed"
     rm -rf "$work"; continue
