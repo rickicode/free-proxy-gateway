@@ -6,8 +6,14 @@
 REPO="https://raw.githubusercontent.com/rickicode/free-proxy-singbox/refs/heads/main"
 GITHUB_API="https://api.github.com/repos/rickicode/free-proxy-singbox/contents"
 
-# Colors
-R='\033[0;31m' G='\033[0;32m' Y='\033[1;33m' B='\033[0;34m' C='\033[0;36m' W='\033[1;37m' N='\033[0m'
+# Colors (busybox ash compatible)
+R=$(printf '\033[0;31m')
+G=$(printf '\033[0;32m')
+Y=$(printf '\033[1;33m')
+B=$(printf '\033[0;34m')
+C=$(printf '\033[0;36m')
+W=$(printf '\033[1;37m')
+N=$(printf '\033[0m')
 
 header() {
   clear
