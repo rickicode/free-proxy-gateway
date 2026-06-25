@@ -65,11 +65,10 @@ proxy-groups:
 
   - name: PROXY-WARP
     type: select
+    use:
+      - warp
     proxies:
       - WARP-LB
-      - WARP-1
-      - WARP-2
-      - WARP-3
       - DIRECT
 
   - name: GOOGLE
