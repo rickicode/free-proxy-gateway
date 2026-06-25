@@ -1,597 +1,300 @@
 #!/bin/sh
-# OpenWrt Proxy Manager — Interactive Installer
-# Usage: wget -O installer.sh <url> && ash installer.sh
-
+# free-proxy-singbox — Installer
+# Auto-install: Nikki, wgcf, wireguard-tools, prox-menu, config, WARP, cron
+#
+# Usage:
+#   ash installer.sh          — install (skip existing)
+#   ash installer.sh --force  — force reinstall dependencies
 set -e
+
 REPO="https://raw.githubusercontent.com/rickicode/free-proxy-singbox/refs/heads/main"
 GITHUB_API="https://api.github.com/repos/rickicode/free-proxy-singbox/contents"
+FORCE=0
+
+[ "$1" = "--force" ] && FORCE=1
 
 # Colors
-R='\033[0;31m' G='\033[0;32m' Y='\033[1;33m' B='\033[0;34m' C='\033[0;36m' W='\033[1;37m' N='\033[0m'
+R='\033[0;31m' G='\033[0;32m' Y='\033[1;33m' B='\033[0;34m' W='\033[1;37m' N='\033[0m'
 
-header() {
-  clear
-  echo "${B}╔══════════════════════════════════════════════════╗${N}"
-  echo "${B}║${W}       OpenWrt Proxy Manager — free-proxy-singbox  ${B}║${N}"
-  echo "${B}╚══════════════════════════════════════════════════╝${N}"
-  echo ""
-}
+ok()   { echo "  ${G}✓${N} $1"; }
+skip() { echo "  ${Y}⏭${N} $1 (sudah ada)"; }
+fail() { echo "  ${R}✗${N} $1"; }
+info() { echo "  ${C}→${N} $1"; }
 
-check_root() {
-  [ "$(id -u)" != "0" ] && echo "${R}ERROR: Jalankan sebagai root${N}" && exit 1
-}
+echo ""
+echo "${B}╔══════════════════════════════════════════════════╗${N}"
+echo "${B}║${W}       free-proxy-singbox — Installer              ${B}║${N}"
+echo "${B}╚══════════════════════════════════════════════════╝${N}"
+echo ""
 
-check_openwrt() {
-  [ ! -f /etc/openwrt_release ] && echo "${R}ERROR: Bukan OpenWrt${N}" && exit 1
-}
+# ── CHECK ROOT ──────────────────────────────────
+[ "$(id -u)" != "0" ] && echo "${R}ERROR: Jalankan sebagai root${N}" && exit 1
 
-check_nikki() {
-  if ! command -v nikki >/dev/null 2>&1 && ! pgrep -x nikki >/dev/null 2>&1; then
-    echo "${Y}WARNING: Nikki belum terinstall${N}"
-    return 1
-  fi
-  return 0
-}
+# ── CHECK OPENWRT ───────────────────────────────
+if [ ! -f /etc/openwrt_release ]; then
+  echo "${R}ERROR: Bukan OpenWrt${N}"
+  exit 1
+fi
 
-check_mihomo() {
-  if ! pgrep -x mihomo >/dev/null 2>&1; then
-    echo "${Y}WARNING: Mihomo tidak berjalan${N}"
-    return 1
-  fi
-  return 0
-}
+ARCH=$(uname -m)
+case "$ARCH" in
+  x86_64|amd64) ARCH_NAME="amd64" ;;
+  aarch64|arm64) ARCH_NAME="arm64" ;;
+  armv7l|armhf) ARCH_NAME="armv7" ;;
+  *) ARCH_NAME="amd64" ;;
+esac
 
-# ── STATUS ──────────────────────────────────────
-show_status() {
-  header
-  echo "${W}═══ STATUS ═══${N}"
-  echo ""
+echo "${W}[1/7] Dependencies${N}"
+echo ""
 
-  # System
-  echo "${C}System:${N}"
-  uptime | sed 's/^/  /'
-  free -h 2>/dev/null | grep Mem | awk '{printf "  RAM: %s / %s (%.0f%%)\n", $3, $2, $3/$2*100}'
-  df -h / | tail -1 | awk '{printf "  Disk: %s / %s (%s)\n", $3, $2, $5}'
-  echo ""
-
-  # Network
-  echo "${C}Network:${N}"
-  ip route show default | awk '{printf "  WAN1 (eth0): %s via %s\n", $5, $3}'
-  ip route show dev eth1 2>/dev/null | grep default | awk '{printf "  WAN2 (eth1): via %s\n", $3}' || echo "  WAN2 (eth1): no default route"
-  echo ""
-
-  # Nikki/Mihomo
-  echo "${C}Nikki/Mihomo:${N}"
-  if pgrep -x mihomo >/dev/null 2>&1; then
-    echo "  ${G}✓ Mihomo running${N} (PID $(pgrep -x mihomo))"
+# ── NIKKI ───────────────────────────────────────
+echo -n "  Nikki: "
+if command -v nikki >/dev/null 2>&1 || [ -f /usr/bin/nikki ]; then
+  if [ "$FORCE" = "1" ]; then
+    info "Force reinstall..."
+    wget -qO - https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/feed.sh | ash 2>/dev/null
+    apk add nikki luci-app-nikki 2>/dev/null || opkg install nikki luci-app-nikki 2>/dev/null
+    ok "Nikki reinstalled"
   else
-    echo "  ${R}✗ Mihomo not running${N}"
+    skip "Nikki"
   fi
-  if curl -s --max-time 2 -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/proxies >/dev/null 2>&1; then
-    echo "  ${G}✓ API active${N} (port 9090)"
+else
+  info "Installing Nikki..."
+  wget -qO - https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/feed.sh | ash 2>/dev/null
+  apk add nikki luci-app-nikki 2>/dev/null || opkg install nikki luci-app-nikki 2>/dev/null
+  ok "Nikki installed"
+fi
+
+# ── WGCF ────────────────────────────────────────
+echo -n "  wgcf: "
+if command -v wgcf >/dev/null 2>&1; then
+  if [ "$FORCE" = "1" ]; then
+    info "Force reinstall..."
+    wget -qO /usr/local/bin/wgcf "https://github.com/ViRb3/wgcf/releases/latest/download/wgcf_${ARCH_NAME}"
+    chmod +x /usr/local/bin/wgcf
+    ok "wgcf reinstalled"
   else
-    echo "  ${R}✗ API not responding${N}"
+    skip "wgcf"
   fi
-  echo ""
+else
+  info "Downloading wgcf..."
+  wget -qO /usr/local/bin/wgcf "https://github.com/ViRb3/wgcf/releases/latest/download/wgcf_${ARCH_NAME}"
+  chmod +x /usr/local/bin/wgcf
+  ok "wgcf installed"
+fi
 
-  # Ports
-  echo "${C}Listening Ports:${N}"
-  netstat -tlnp 2>/dev/null | grep -E "7890|9090|1053|101[0-3]|22" | awk '{printf "  %s %s\n", $4, $7}' || ss -tlnp | grep -E "7890|9090|1053|101[0-3]|22"
-  echo ""
+# ── WIREGUARD TOOLS ─────────────────────────────
+echo -n "  wireguard-tools: "
+if command -v wg >/dev/null 2>&1; then
+  skip "wireguard-tools"
+else
+  info "Installing wireguard-tools..."
+  apk add wireguard-tools 2>/dev/null || apt-get install -y -qq wireguard-tools 2>/dev/null
+  ok "wireguard-tools installed"
+fi
 
-  # Tailscale
-  echo "${C}Tailscale:${N}"
-  if command -v tailscale >/dev/null 2>&1; then
-    ts_status=$(tailscale status 2>/dev/null | head -1)
-    if [ -n "$ts_status" ]; then
-      ts_ip=$(tailscale ip -4 2>/dev/null)
-      echo "  ${G}✓ Connected${N} ($ts_ip)"
-    else
-      echo "  ${Y}⚠ Not connected${N}"
-    fi
-  else
-    echo "  Not installed"
+# ── PYTHON3 ─────────────────────────────────────
+echo -n "  python3: "
+if command -v python3 >/dev/null 2>&1; then
+  skip "python3"
+else
+  info "Installing python3..."
+  apk add python3 2>/dev/null || apt-get install -y -qq python3 2>/dev/null
+  ok "python3 installed"
+fi
+
+echo ""
+echo "${W}[2/7] Config${N}"
+echo ""
+
+# ── BASE CONFIG ─────────────────────────────────
+echo -n "  Base config (mixin): "
+mkdir -p /etc/nikki
+curl -sL "$GITHUB_API/openwrt/base.yml" -o /etc/nikki/mixin.yaml 2>/dev/null
+if head -1 /etc/nikki/mixin.yaml | grep -q "Base config"; then
+  ok "mixin.yaml ($(wc -l < /etc/nikki/mixin.yaml) lines)"
+else
+  fail "Download base config gagal"
+  exit 1
+fi
+
+# ── PROXY LIST ──────────────────────────────────
+echo -n "  Proxy list: "
+mkdir -p /etc/nikki/run/providers
+curl -sL "$REPO/output/live-proxies.mihomo.yml" -o /etc/nikki/run/providers/free-proxies.yml 2>/dev/null
+if head -1 /etc/nikki/run/providers/free-proxies.yml | grep -q "Auto-generated"; then
+  ok "free-proxies.yml ($(wc -l < /etc/nikki/run/providers/free-proxies.yml) lines)"
+else
+  fail "Download proxy list gagal"
+  exit 1
+fi
+
+echo ""
+echo "${W}[3/7] WARP${N}"
+echo ""
+
+# ── WARP SETUP ──────────────────────────────────
+echo -n "  WARP accounts: "
+if [ -f /etc/nikki/warp-creds.json ] && [ "$FORCE" != "1" ]; then
+  skip "WARP credentials"
+  # Ensure warp.yml exists in providers
+  if [ ! -f /etc/nikki/run/providers/warp.yml ] && [ -f /etc/nikki/profiles/warp.yml ]; then
+    cp /etc/nikki/profiles/warp.yml /etc/nikki/run/providers/warp.yml
+    ok "warp.yml copied to providers"
   fi
-  echo ""
-
-  echo "${Y}Tekan Enter untuk kembali...${N}"
-  read -r
-}
-
-# ── DOCTOR ──────────────────────────────────────
-run_doctor() {
-  header
-  echo "${W}═══ DOCTOR ═══${N}"
-  echo ""
-
-  issues=0
-
-  # Check 1: Nikki installed
-  echo -n "  Nikki installed: "
-  if command -v nikki >/dev/null 2>&1 || [ -f /usr/bin/nikki ]; then
-    echo "${G}✓${N}"
-  else
-    echo "${R}✗ — install: apk add nikki luci-app-nikki${N}"
-    issues=$((issues+1))
-  fi
-
-  # Check 2: Mihomo running
-  echo -n "  Mihomo running: "
-  if pgrep -x mihomo >/dev/null 2>&1; then
-    echo "${G}✓${N}"
-  else
-    echo "${R}✗ — jalankan: /etc/init.d/nikki restart${N}"
-    issues=$((issues+1))
-  fi
-
-  # Check 3: API responding
-  echo -n "  API responding: "
-  if curl -s --max-time 2 -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/proxies >/dev/null 2>&1; then
-    echo "${G}✓${N}"
-  else
-    echo "${R}✗${N}"
-    issues=$((issues+1))
-  fi
-
-  # Check 4: Proxy providers loaded
-  echo -n "  Proxy providers: "
-  free_count=$(curl -s -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/providers/proxies 2>/dev/null | python3 -c "import json,sys; d=json.loads(json.load(sys.stdin)['out-data']); print(len(d.get('providers',{}).get('free',{}).get('proxies',[])))" 2>/dev/null || echo "0")
-  if [ "$free_count" -gt 0 ]; then
-    echo "${G}✓ ($free_count proxies)${N}"
-  else
-    echo "${R}✗ — proxy list tidak ter-load${N}"
-    issues=$((issues+1))
-  fi
-
-  # Check 5: WARP
-  echo -n "  WARP proxies: "
-  warp_count=$(curl -s -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/providers/proxies 2>/dev/null | python3 -c "import json,sys; d=json.loads(json.load(sys.stdin)['out-data']); print(len(d.get('providers',{}).get('warp',{}).get('proxies',[])))" 2>/dev/null || echo "0")
-  if [ "$warp_count" -gt 0 ]; then
-    echo "${G}✓ ($warp_count proxies)${N}"
-  else
-    echo "${Y}⚠ WARP tidak ter-load — jalankan: ash /etc/nikki/warp-setup.sh${N}"
-  fi
-
-  # Check 6: WAN1 connectivity
-  echo -n "  WAN1 connectivity: "
-  if curl -s --max-time 3 http://www.gstatic.com/generate_204 -o /dev/null 2>&1; then
-    echo "${G}✓${N}"
-  else
-    echo "${R}✗ — WAN1 tidak ada internet${N}"
-    issues=$((issues+1))
-  fi
-
-  # Check 7: DNS hijack
-  echo -n "  DNS hijack: "
-  if nft list chain inet nikki router_dns_hijack >/dev/null 2>&1; then
-    echo "${G}✓${N}"
-  else
-    echo "${Y}⚠ nftables chain tidak ditemukan${N}"
-  fi
-
-  # Check 8: Cron
-  echo -n "  Cron jobs: "
-  cron_count=$(crontab -l 2>/dev/null | grep -c "update-proxy\|warp-refresh" || echo "0")
-  if [ "$cron_count" -gt 0 ]; then
-    echo "${G}✓ ($cron_count jobs)${N}"
-  else
-    echo "${Y}⚠ Tidak ada cron — setup via menu Install${N}"
-  fi
-
-  # Check 9: Rules loaded
-  echo -n "  Rules loaded: "
-  rule_count=$(curl -s -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/rules 2>/dev/null | python3 -c "import json,sys; d=json.loads(json.load(sys.stdin)['out-data']); print(len(d.get('rules',[])))" 2>/dev/null || echo "0")
-  if [ "$rule_count" -gt 0 ]; then
-    echo "${G}✓ ($rule_count rules)${N}"
-  else
-    echo "${R}✗ — rules tidak ter-load${N}"
-    issues=$((issues+1))
-  fi
-
-  echo ""
-  if [ "$issues" -eq 0 ]; then
-    echo "${G}═══ Semua OK! Tidak ada masalah. ═══${N}"
-  else
-    echo "${R}═══ $issues masalah ditemukan. ═══${N}"
-  fi
-
-  echo ""
-  echo "${Y}Tekan Enter untuk kembali...${N}"
-  read -r
-}
-
-# ── PROXY GROUPS ────────────────────────────────
-show_groups() {
-  header
-  echo "${W}═══ PROXY GROUPS ═══${N}"
-  echo ""
-
-  curl -s -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/proxies 2>/dev/null | python3 -c "
-import json,sys
-d=json.loads(json.load(sys.stdin)['out-data'])
-for n,i in d.get('proxies',{}).items():
-    t=i.get('type','')
-    m=len(i.get('all',[]))
-    now=i.get('now','')
-    if t in ('Selector','URLTest','LoadBalance'):
-        status = '✓' if i.get('alive',True) else '✗'
-        print(f'  {status} {n:20s} ({t:10s}) {m:3d} members  → {now}')
-" 2>/dev/null
-
-  echo ""
-  echo "${Y}Tekan Enter untuk kembali...${N}"
-  read -r
-}
-
-# ── PROXY TEST ──────────────────────────────────
-test_proxies() {
-  header
-  echo "${W}═══ PROXY TEST ═══${N}"
-  echo ""
-
-  echo "Testing koneksi..."
-  echo ""
-
-  # Direct
-  echo -n "  DIRECT (WAN1): "
-  result=$(curl -s --max-time 5 http://ifconfig.me 2>/dev/null)
-  [ -n "$result" ] && echo "${G}$result${N}" || echo "${R}timeout${N}"
-
-  # PROXY-FREE
-  echo -n "  PROXY-FREE: "
-  # Test via first free proxy in group
-  echo "${C}(cek di dashboard)${N}"
-
-  # WARP
-  echo -n "  WARP: "
-  echo "${C}(cek di dashboard)${N}"
-
-  echo ""
-  echo "${Y}Tekan Enter untuk kembali...${N}"
-  read -r
-}
-
-# ── UPDATE ──────────────────────────────────────
-update_proxy() {
-  header
-  echo "${W}═══ UPDATE PROXY ═══${N}"
-  echo ""
-
-  echo "1) Update proxy list + config (dari GitHub)"
-  echo "2) Update mixin (base config) saja"
-  echo "3) Update proxy list saja"
-  echo "4) Restart Nikki"
-  echo "0) Kembali"
-  echo ""
-  printf "Pilih: "
-  read -r choice
-
-  case "$choice" in
-    1)
-      echo ""
-      echo "Downloading base config..."
-      curl -sL "$GITHUB_API/openwrt/base.yml" -o /etc/nikki/mixin.yaml 2>/dev/null
-      if head -1 /etc/nikki/mixin.yaml | grep -q "Base config"; then
-        echo "${G}  ✓ Base config OK${N}"
-      else
-        echo "${R}  ✗ Base config gagal${N}"
-      fi
-
-      echo "Downloading proxy list..."
-      curl -sL "$REPO/output/live-proxies.mihomo.yml" -o /etc/nikki/run/providers/free-proxies.yml 2>/dev/null
-      if head -1 /etc/nikki/run/providers/free-proxies.yml | grep -q "Auto-generated"; then
-        echo "${G}  ✓ Proxy list OK${N}"
-      else
-        echo "${R}  ✗ Proxy list gagal${N}"
-      fi
-
-      echo "Restarting Nikki..."
-      /etc/init.d/nikki restart 2>/dev/null
-      sleep 3
-      if pgrep -x mihomo >/dev/null 2>&1; then
-        echo "${G}  ✓ Nikki running${N}"
-      else
-        echo "${R}  ✗ Nikki gagal start${N}"
-      fi
-      ;;
-    2)
-      echo ""
-      curl -sL "$GITHUB_API/openwrt/base.yml" -o /etc/nikki/mixin.yaml 2>/dev/null
-      /etc/init.d/nikki restart 2>/dev/null
-      echo "${G}✓ Mixin updated & Nikki restarted${N}"
-      ;;
-    3)
-      echo ""
-      curl -sL "$REPO/output/live-proxies.mihomo.yml" -o /etc/nikki/run/providers/free-proxies.yml 2>/dev/null
-      /etc/init.d/nikki restart 2>/dev/null
-      echo "${G}✓ Proxy list updated & Nikki restarted${N}"
-      ;;
-    4)
-      echo ""
-      /etc/init.d/nikki restart 2>/dev/null
-      echo "${G}✓ Nikki restarted${N}"
-      ;;
-    0) return ;;
-  esac
-
-  echo ""
-  echo "${Y}Tekan Enter untuk kembali...${N}"
-  read -r
-}
-
-# ── WARP ────────────────────────────────────────
-manage_warp() {
-  header
-  echo "${W}═══ WARP MANAGEMENT ═══${N}"
-  echo ""
-
-  # Check WARP status
-  warp_count=$(curl -s -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/providers/proxies 2>/dev/null | python3 -c "import json,sys; d=json.loads(json.load(sys.stdin)['out-data']); print(len(d.get('providers',{}).get('warp',{}).get('proxies',[])))" 2>/dev/null || echo "0")
-
-  echo "  WARP proxies: $warp_count"
-  if [ -f /etc/nikki/warp-creds.json ]; then
-    echo "  ${G}✓ warp-creds.json exists${N}"
-  else
-    echo "  ${Y}⚠ warp-creds.json tidak ada${N}"
-  fi
-  echo ""
-
-  echo "1) Generate WARP accounts baru (wgcf)"
-  echo "2) Lihat WARP credentials"
-  echo "3) Restart Nikki"
-  echo "0) Kembali"
-  echo ""
-  printf "Pilih: "
-  read -r choice
-
-  case "$choice" in
-    1)
-      echo ""
-      if [ ! -f /etc/nikki/warp-setup.sh ]; then
-        echo "Downloading warp-setup.sh..."
-        curl -sL "$REPO/openwrt/warp-setup.sh" -o /etc/nikki/warp-setup.sh 2>/dev/null
-        chmod +x /etc/nikki/warp-setup.sh
-      fi
-      ash /etc/nikki/warp-setup.sh
-      ;;
-    2)
-      echo ""
-      if [ -f /etc/nikki/warp-creds.json ]; then
-        cat /etc/nikki/warp-creds.json
-      else
-        echo "${Y}Tidak ada credentials${N}"
-      fi
-      ;;
-    3)
-      /etc/init.d/nikki restart 2>/dev/null
-      echo "${G}✓ Nikki restarted${N}"
-      ;;
-    0) return ;;
-  esac
-
-  echo ""
-  echo "${Y}Tekan Enter untuk kembali...${N}"
-  read -r
-}
-
-# ── CRON ────────────────────────────────────────
-manage_cron() {
-  header
-  echo "${W}═══ CRON / SCHEDULER ═══${N}"
-  echo ""
-
-  echo "${C}Current cron jobs:${N}"
-  crontab -l 2>/dev/null | grep -v "^#" | sed 's/^/  /'
-  echo ""
-
-  echo "1) Setup cron auto-update (proxy + WARP)"
-  echo "2) Hapus semua cron"
-  echo "3) Update proxy sekarang"
-  echo "0) Kembali"
-  echo ""
-  printf "Pilih: "
-  read -r choice
-
-  case "$choice" in
-    1)
-      echo ""
-      # Create update script
-      cat > /usr/local/bin/update-proxy.sh << 'EOF'
-#!/bin/sh
-BASE_URL="https://api.github.com/repos/rickicode/free-proxy-singbox/contents"
-CHANGED=0
-curl -sL -H "Accept: application/vnd.github.v3.raw" "$BASE_URL/openwrt/base.yml" -o /etc/nikki/mixin.yaml.tmp 2>/dev/null
-if head -1 /etc/nikki/mixin.yaml.tmp | grep -q "Base config"; then
-  mv /etc/nikki/mixin.yaml.tmp /etc/nikki/mixin.yaml
-  CHANGED=1
-else rm -f /etc/nikki/mixin.yaml.tmp; fi
-curl -sL "https://raw.githubusercontent.com/rickicode/free-proxy-singbox/refs/heads/main/output/live-proxies.mihomo.yml" -o /etc/nikki/run/providers/free-proxies.yml.tmp 2>/dev/null
-if head -1 /etc/nikki/run/providers/free-proxies.yml.tmp | grep -q "Auto-generated"; then
-  mv /etc/nikki/run/providers/free-proxies.yml.tmp /etc/nikki/run/providers/free-proxies.yml
-  CHANGED=1
-else rm -f /etc/nikki/run/providers/free-proxies.yml.tmp; fi
-[ "$CHANGED" = "1" ] && /etc/init.d/nikki restart 2>/dev/null && echo "[$(date)] Updated" >> /var/log/proxy-update.log
-EOF
-      chmod +x /usr/local/bin/update-proxy.sh
-
-      cat > /usr/local/bin/warp-refresh.sh << 'EOF'
-#!/bin/sh
-CRED=/etc/nikki/warp-creds.json
-[ ! -f "$CRED" ] && ash /etc/nikki/warp-setup.sh && /etc/init.d/nikki restart && exit 0
-last=$(python3 -c "import json,time;c=json.load(open('$CRED'));t=[v.get('refreshed_at','') for v in c.values() if v.get('refreshed_at')];print(f'{(time.time()-time.mktime(time.strptime(max(t),\"%Y-%m-%dT%H:%M:%SZ\")))/86400:.1f}')" 2>/dev/null || echo 99)
-[ "$(echo "$last < 1.5" | bc -l 2>/dev/null || echo 0)" = "1" ] && exit 0
-ash /etc/nikki/warp-setup.sh && /etc/init.d/nikki restart 2>/dev/null
-EOF
-      chmod +x /usr/local/bin/warp-refresh.sh
-
-      (crontab -l 2>/dev/null | grep -v update-proxy | grep -v warp-refresh; \
-       echo "0 */12 * * * /usr/local/bin/update-proxy.sh"; \
-       echo "0 3 */2 * * /usr/local/bin/warp-refresh.sh") | crontab -
-      echo "${G}✓ Cron terpasang${N}"
-      ;;
-    2)
-      crontab -l 2>/dev/null | grep -v update-proxy | grep -v warp-refresh | crontab -
-      echo "${G}✓ Cron dihapus${N}"
-      ;;
-    3)
-      echo ""
-      /usr/local/bin/update-proxy.sh 2>/dev/null && echo "${G}✓ Updated${N}" || echo "${R}✗ Gagal${N}"
-      ;;
-    0) return ;;
-  esac
-
-  echo ""
-  echo "${Y}Tekan Enter untuk kembali...${N}"
-  read -r
-}
-
-# ── INSTALL ─────────────────────────────────────
-full_install() {
-  header
-  echo "${W}═══ FULL INSTALL ═══${N}"
-  echo ""
-
-  check_root
-  check_openwrt
-
-  echo "1) Download base config..."
-  curl -sL "$GITHUB_API/openwrt/base.yml" -o /etc/nikki/mixin.yaml 2>/dev/null
-  echo "${G}  ✓${N}"
-
-  echo "2) Download proxy list..."
-  mkdir -p /etc/nikki/run/providers
-  curl -sL "$REPO/output/live-proxies.mihomo.yml" -o /etc/nikki/run/providers/free-proxies.yml 2>/dev/null
-  echo "${G}  ✓${N}"
-
-  echo "3) Install wgcf + generate WARP..."
+else
+  info "Generating WARP accounts..."
   curl -sL "$REPO/openwrt/warp-setup.sh" -o /etc/nikki/warp-setup.sh 2>/dev/null
   chmod +x /etc/nikki/warp-setup.sh
   ash /etc/nikki/warp-setup.sh
+  # Copy to providers
+  [ -f /etc/nikki/profiles/warp.yml ] && cp /etc/nikki/profiles/warp.yml /etc/nikki/run/providers/warp.yml
+  ok "WARP accounts generated"
+fi
 
-  echo "4) Setup cron..."
-  cat > /usr/local/bin/update-proxy.sh << 'EOF'
+echo ""
+echo "${W}[4/7] Cron${N}"
+echo ""
+
+# ── UPDATE SCRIPT ───────────────────────────────
+echo -n "  update-proxy.sh: "
+cat > /usr/local/bin/update-proxy.sh << 'EOF'
 #!/bin/sh
 BASE_URL="https://api.github.com/repos/rickicode/free-proxy-singbox/contents"
+RAW_URL="https://raw.githubusercontent.com/rickicode/free-proxy-singbox/refs/heads/main"
 CHANGED=0
 curl -sL -H "Accept: application/vnd.github.v3.raw" "$BASE_URL/openwrt/base.yml" -o /etc/nikki/mixin.yaml.tmp 2>/dev/null
 if head -1 /etc/nikki/mixin.yaml.tmp | grep -q "Base config"; then
   mv /etc/nikki/mixin.yaml.tmp /etc/nikki/mixin.yaml
   CHANGED=1
 else rm -f /etc/nikki/mixin.yaml.tmp; fi
-curl -sL "https://raw.githubusercontent.com/rickicode/free-proxy-singbox/refs/heads/main/output/live-proxies.mihomo.yml" -o /etc/nikki/run/providers/free-proxies.yml.tmp 2>/dev/null
+curl -sL "$RAW_URL/output/live-proxies.mihomo.yml" -o /etc/nikki/run/providers/free-proxies.yml.tmp 2>/dev/null
 if head -1 /etc/nikki/run/providers/free-proxies.yml.tmp | grep -q "Auto-generated"; then
   mv /etc/nikki/run/providers/free-proxies.yml.tmp /etc/nikki/run/providers/free-proxies.yml
   CHANGED=1
 else rm -f /etc/nikki/run/providers/free-proxies.yml.tmp; fi
 [ "$CHANGED" = "1" ] && /etc/init.d/nikki restart 2>/dev/null && echo "[$(date)] Updated" >> /var/log/proxy-update.log
 EOF
-  chmod +x /usr/local/bin/update-proxy.sh
-  (crontab -l 2>/dev/null | grep -v update-proxy; echo "0 */12 * * * /usr/local/bin/update-proxy.sh") | crontab -
-  echo "${G}  ✓${N}"
+chmod +x /usr/local/bin/update-proxy.sh
+ok "update-proxy.sh"
 
-  echo "5) Restart Nikki..."
-  /etc/init.d/nikki restart 2>/dev/null
-  sleep 3
-  if pgrep -x mihomo >/dev/null 2>&1; then
-    echo "${G}  ✓ Nikki running${N}"
-  else
-    echo "${R}  ✗ Nikki gagal start${N}"
-  fi
+# ── WARP REFRESH SCRIPT ────────────────────────
+echo -n "  warp-refresh.sh: "
+cat > /usr/local/bin/warp-refresh.sh << 'EOF'
+#!/bin/sh
+CRED=/etc/nikki/warp-creds.json
+[ ! -f "$CRED" ] && ash /etc/nikki/warp-setup.sh && cp /etc/nikki/profiles/warp.yml /etc/nikki/run/providers/warp.yml && /etc/init.d/nikki restart && exit 0
+last=$(python3 -c "import json,time;c=json.load(open('$CRED'));t=[v.get('refreshed_at','') for v in c.values() if v.get('refreshed_at')];print(f'{(time.time()-time.mktime(time.strptime(max(t),\"%Y-%m-%dT%H:%M:%SZ\")))/86400:.1f}')" 2>/dev/null || echo 99)
+[ "$(echo "$last < 1.5" | bc -l 2>/dev/null || echo 0)" = "1" ] && exit 0
+ash /etc/nikki/warp-setup.sh && cp /etc/nikki/profiles/warp.yml /etc/nikki/run/providers/warp.yml && /etc/init.d/nikki restart 2>/dev/null
+EOF
+chmod +x /usr/local/bin/warp-refresh.sh
+ok "warp-refresh.sh"
 
-  echo ""
-  echo "${G}═══ Install selesai! ═══${N}"
-  echo ""
-  echo "${Y}Tekan Enter untuk kembali...${N}"
-  read -r
-}
+# ── CRONTAB ─────────────────────────────────────
+echo -n "  Crontab: "
+(crontab -l 2>/dev/null | grep -v update-proxy | grep -v warp-refresh; \
+ echo "0 */12 * * * /usr/local/bin/update-proxy.sh"; \
+ echo "0 3 */2 * * /usr/local/bin/warp-refresh.sh") | crontab -
+ok "Cron terpasang (proxy 12 jam, WARP 2 hari)"
 
-# ── LOGS ────────────────────────────────────────
-show_logs() {
-  header
-  echo "${W}═══ LOGS ═══${N}"
-  echo ""
-  echo "1) Nikki app log"
-  echo "2) Nikki core log"
-  echo "3) Proxy update log"
-  echo "0) Kembali"
-  echo ""
-  printf "Pilih: "
-  read -r choice
+echo ""
+echo "${W}[5/7] Prox-Menu${N}"
+echo ""
 
-  case "$choice" in
-    1) tail -30 /var/log/nikki/app.log ;;
-    2) tail -30 /var/log/nikki/core.log ;;
-    3) tail -30 /var/log/proxy-update.log 2>/dev/null || echo "Belum ada log" ;;
-    0) return ;;
-  esac
+# ── INSTALL PROX-MENU ───────────────────────────
+echo -n "  prox-menu: "
+curl -sL "$REPO/openwrt/installer.sh" -o /usr/bin/prox-menu 2>/dev/null
+chmod +x /usr/bin/prox-menu
+if [ -f /usr/bin/prox-menu ]; then
+  ok "prox-menu installed (/usr/bin/prox-menu)"
+else
+  fail "Gagal install prox-menu"
+fi
 
-  echo ""
-  echo "${Y}Tekan Enter untuk kembali...${N}"
-  read -r
-}
+echo ""
+echo "${W}[6/7] Nikki${N}"
+echo ""
 
-# ── SELF INSTALL ─────────────────────────────────
-install_command() {
-  header
-  echo "${W}═══ INSTALL PROX-MENU COMMAND ═══${N}"
-  echo ""
-  
-  echo "Menginstall ke /usr/bin/prox-menu..."
-  
-  # Download latest version
-  curl -sL "$REPO/openwrt/installer.sh" -o /usr/bin/prox-menu 2>/dev/null
-  chmod +x /usr/bin/prox-menu
-  
-  if [ -f /usr/bin/prox-menu ]; then
-    echo "${G}✓ prox-menu terinstall!${N}"
-    echo ""
-    echo "Jalankan dengan: ${W}prox-menu${N}"
-  else
-    echo "${R}✗ Gagal install${N}"
-  fi
-  
-  echo ""
-  echo "${Y}Tekan Enter untuk kembali...${N}"
-  read -r
-}
+# ── NIKKI CONFIG ────────────────────────────────
+echo -n "  UCI config: "
+uci set nikki.config.enabled=1 2>/dev/null
+uci set nikki.proxy.tcp_mode=tproxy 2>/dev/null
+uci set nikki.proxy.udp_mode=tproxy 2>/dev/null
+uci set nikki.proxy.ipv4_dns_hijack=1 2>/dev/null
+uci set nikki.proxy.lan_proxy=1 2>/dev/null
+uci set nikki.mixin.api_listen="[::]:9090" 2>/dev/null
+uci set nikki.mixin.api_secret="hijinet" 2>/dev/null
+uci commit nikki 2>/dev/null
+ok "UCI configured"
 
-# ── MAIN MENU ───────────────────────────────────
-main_menu() {
-  while true; do
-    header
-    echo "${W}Menu:${N}"
-    echo ""
-    echo "  ${G}1)${N} Status      — Lihat status sistem"
-    echo "  ${G}2)${N} Doctor      — Diagnosa masalah"
-    echo "  ${G}3)${N} Groups      — Lihat proxy groups"
-    echo "  ${G}4)${N} Update      — Update proxy/config"
-    echo "  ${G}5)${N} WARP        — Kelola WARP"
-    echo "  ${G}6)${N} Cron        — Kelola scheduler"
-    echo "  ${G}7)${N} Logs        — Lihat log"
-    echo "  ${G}8)${N} Install     — Full install"
-    echo "  ${G}9)${N} Install CMD — Install prox-menu command"
-    echo "  ${R}0)${N} Keluar"
-    echo ""
-    printf "Pilih: "
-    read -r choice
+# ── FIREWALL ────────────────────────────────────
+echo -n "  DNS redirect: "
+if iptables -t nat -C PREROUTING -p tcp --dport 53 -j REDIRECT --to-ports 1053 2>/dev/null; then
+  skip "DNS redirect"
+else
+  iptables -t nat -A PREROUTING -p tcp --dport 53 -j REDIRECT --to-ports 1053 2>/dev/null
+  iptables -t nat -A PREROUTING -p udp --dport 53 -j REDIRECT --to-ports 1053 2>/dev/null
+  ok "DNS redirect added"
+fi
 
-    case "$choice" in
-      1) show_status ;;
-      2) run_doctor ;;
-      3) show_groups ;;
-      4) update_proxy ;;
-      5) manage_warp ;;
-      6) manage_cron ;;
-      7) show_logs ;;
-      8) full_install ;;
-      9) install_command ;;
-      0) echo "${G}Bye!${N}"; exit 0 ;;
-      *) echo "${R}Pilihan tidak valid${N}"; sleep 1 ;;
-    esac
-  done
-}
+# ── START NIKKI ─────────────────────────────────
+echo -n "  Start Nikki: "
+/etc/init.d/nikki restart 2>/dev/null
+sleep 3
+if pgrep -x mihomo >/dev/null 2>&1; then
+  ok "Mihomo running (PID $(pgrep -x mihomo))"
+else
+  fail "Mihomo gagal start — cek: tail /var/log/nikki/core.log"
+fi
 
-# ── RUN ─────────────────────────────────────────
-check_root
-check_openwrt
-main_menu
+echo ""
+echo "${W}[7/7] Verifikasi${N}"
+echo ""
+
+# ── VERIFY ──────────────────────────────────────
+echo -n "  API: "
+if curl -s --max-time 2 -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/proxies >/dev/null 2>&1; then
+  ok "API active (port 9090)"
+else
+  fail "API not responding"
+fi
+
+echo -n "  WAN1: "
+if curl -s --max-time 3 http://www.gstatic.com/generate_204 -o /dev/null 2>&1; then
+  ok "WAN1 connected"
+else
+  fail "WAN1 no internet"
+fi
+
+echo -n "  Proxies: "
+proxy_count=$(curl -s -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/providers/proxies 2>/dev/null | python3 -c "import json,sys; d=json.loads(json.load(sys.stdin)['out-data']); print(len(d.get('providers',{}).get('free',{}).get('proxies',[])))" 2>/dev/null || echo "0")
+if [ "$proxy_count" -gt 0 ]; then
+  ok "$proxy_count proxies loaded"
+else
+  fail "No proxies loaded"
+fi
+
+echo -n "  WARP: "
+warp_count=$(curl -s -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/providers/proxies 2>/dev/null | python3 -c "import json,sys; d=json.loads(json.load(sys.stdin)['out-data']); print(len(d.get('providers',{}).get('warp',{}).get('proxies',[])))" 2>/dev/null || echo "0")
+if [ "$warp_count" -gt 0 ]; then
+  ok "$warp_count WARP proxies"
+else
+  echo "${Y}⚠ WARP belum ter-load${N}"
+fi
+
+echo ""
+echo "${B}╔══════════════════════════════════════════════════╗${N}"
+echo "${B}║${G}       Install selesai!                             ${B}║${N}"
+echo "${B}╚══════════════════════════════════════════════════╝${N}"
+echo ""
+echo "  Jalankan: ${W}prox-menu${N} untuk membuka menu"
+echo ""
+echo "  Proxy endpoints:"
+echo "    1010 — WAN (default WAN2)"
+echo "    1011 — FREE proxy"
+echo "    1012 — ASIA proxy"
+echo "    1013 — WARP"
+echo ""
+echo "  Dashboard: http://$(ip -4 addr show br-lan 2>/dev/null | grep inet | head -1 | awk '{print $2}' | cut -d/ -f1):9090"
+echo ""

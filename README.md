@@ -1,99 +1,176 @@
 # free-proxy-singbox
 
-Repo ini bertugas sebagai producer daftar proxy publik yang benar-benar live.
+Proxy scanner + OpenWrt gateway manager. Mengumpulkan proxy publik yang live dan menyediakan config siap pakai untuk Nikki/Mihomo di OpenWrt.
 
-Fungsi repo:
+## Quick Start
 
-- fetch semua kandidat proxy dari source publik
-- parse `trojan://`, `vless://`, `vmess://`, `ss://`
-- cek TCP kandidat
-- cek live kandidat dengan binary `sing-box` lokal
-- deteksi negara exit IP
-- tulis hasil akhir ke JSON yang bisa dibaca langsung lewat raw GitHub URL
-- commit hasil scan otomatis lewat GitHub Actions setiap 12 jam
+### Install (OpenWrt)
 
-Repo ini tidak bertugas mengelola gateway host. Sistem gateway lain cukup membaca hasil scan dari repo ini.
+```bash
+ash <(curl -sL https://raw.githubusercontent.com/rickicode/free-proxy-singbox/refs/heads/main/openwrt/installer.sh)
+```
 
-## Output
+Installer otomatis:
+- Install Nikki + Mihomo
+- Install wgcf + wireguard-tools
+- Download config + proxy list
+- Generate 3 WARP accounts (per-device)
+- Setup cron auto-update
+- Install `prox-menu` command
 
-File utama:
+### Menu
 
-- `output/live-proxies.json`
-  berisi metadata scan, daftar proxy live, group selector, dan snapshot `singbox`
-- `output/live-proxies.singbox.json`
-  berisi blok config `sing-box` yang siap dipakai sebagai source config
-- `output/latest-summary.json`
-  ringkasan kecil hasil scan terbaru
+```bash
+prox-menu
+```
 
-Naming proxy:
+```
+╔══════════════════════════════════════════════════╗
+║       prox-menu — Proxy Manager                   ║
+╚══════════════════════════════════════════════════╝
 
-- format tag: `FREE-{COUNTRY}-{INDEX}-{SUFFIX}`
-- contoh: `FREE-US-0003-ShadowsocksM-XX`
+  1) Status      — Sistem, jaringan, nikki
+  2) Doctor      — Diagnosa masalah
+  3) Groups      — Proxy groups & members
+  4) Test        — Test koneksi proxy
+  5) Update      — Update proxy/config
+  6) WARP        — Kelola WARP
+  7) Cron        — Scheduler
+  8) Logs        — Lihat log
+  0) Keluar
+```
 
-Group yang dihasilkan:
+### Force Reinstall
 
-- `PROXY-FREE`
-- `PROXY-ID`
-- `PROXY-SG`
-- `PROXY-US`
-- `GLOBAL`
+```bash
+ash installer.sh --force
+```
 
-## Cara kerja
+## Arsitektur
 
-1. Ambil semua kandidat dari semua source.
-2. Parse ke format outbound `sing-box`.
-3. Dedupe kandidat.
-4. Bagi kandidat ke shard untuk GitHub Actions.
-5. Jalankan TCP test paralel.
-6. Jalankan live test paralel memakai `bin/sing-box`.
-7. Saat live test sukses, langsung lookup GeoIP.
-8. Tulis hasil shard.
-9. Merge semua shard.
-10. Replace file output final lalu commit jika ada perubahan.
+```
+┌─────────────────────────────────────────────────────┐
+│  GitHub Repo (free-proxy-singbox)                    │
+│  ├── freeproxy.py — scanner (tiap 12 jam)           │
+│  ├── output/live-proxies.mihomo.yml — proxy list    │
+│  ├── openwrt/base.yml — mixin config                │
+│  └── openwrt/rules/*.yml — rule providers           │
+└─────────────────────────────────────────────────────┘
+          ↓ download
+┌─────────────────────────────────────────────────────┐
+│  OpenWrt Router                                      │
+│  ├── /etc/nikki/mixin.yaml — base config             │
+│  ├── /etc/nikki/run/providers/                       │
+│  │   ├── free-proxies.yml — free proxies (auto)      │
+│  │   └── warp.yml — WARP proxies (per-device)        │
+│  └── /usr/bin/prox-menu — interactive menu           │
+└─────────────────────────────────────────────────────┘
+```
+
+## Proxy Endpoints
+
+| Port | Group | Default | Description |
+|------|-------|---------|-------------|
+| 1010 | PROXY-1010 | WAN2 | WAN selector |
+| 1011 | PROXY-1011 | PROXY-FREE | Free proxy selector |
+| 1012 | PROXY-1012 | PROXY-ASIA | Asia proxy selector |
+| 1013 | PROXY-1013 | WARP-LB | WARP selector |
+| 7890 | mixed | GLOBAL | Default mixed proxy |
+| 9090 | API | — | Mihomo dashboard |
+| 1053 | DNS | — | Mihomo DNS (fake-ip) |
+
+### Proxy Groups
+
+| Group | Type | Description |
+|-------|------|-------------|
+| GLOBAL | Selector | Catch-all |
+| WAN | Selector | WAN1/WAN2 |
+| WAN-AUTO | LoadBalance | Auto-select WAN |
+| PROXY-FREE | URLTest | All free proxies |
+| PROXY-ID | URLTest | Indonesia |
+| PROXY-SG | URLTest | Singapore |
+| PROXY-US | URLTest | US |
+| PROXY-ASIA | URLTest | Asia region |
+| PROXY-EU | URLTest | Europe region |
+| WARP-LB | LoadBalance | WARP load balance |
+| PROXY-WARP | Selector | WARP group |
+| BLOCKED | Selector | Ad blocking |
+| GOOGLE | Selector | Google services |
+| AI | Selector | AI services |
+| CHECK-IP | Selector | IP check sites |
+| SOCIAL | Selector | Social media |
+
+### Rules
+
+| Rule | Target |
+|------|--------|
+| Ads (GEOSITE) | BLOCKED |
+| STUN ports (3478, 5349, 19302) | BLOCKED |
+| IP check domains | CHECK-IP |
+| Private/CN | DIRECT |
+| Google | GOOGLE |
+| AI services | AI |
+| Social media | SOCIAL |
+| Catch-all | GLOBAL |
+
+## Auto Update
+
+| Job | Frequency | Description |
+|-----|-----------|-------------|
+| `update-proxy.sh` | Tiap 12 jam | Update proxy list + base config |
+| `warp-refresh.sh` | Tiap 2 hari | Refresh WARP accounts jika expired |
+
+## File Structure
+
+```
+openwrt/
+├── installer.sh    — Auto-install deps + prox-menu
+├── prox-menu.sh    — Interactive menu (prox-menu command)
+├── base.yml        — Mihomo mixin config (rules, groups, providers)
+├── warp-setup.sh   — WARP account generator (per-device)
+├── rules/          — Rule provider files
+│   ├── private.yml
+│   ├── google.yml
+│   ├── ai.yml
+│   ├── check-ip.yml
+│   └── social.yml
+└── README.md
+```
+
+## Commands
+
+```bash
+# Install
+ash installer.sh
+
+# Menu
+prox-menu
+
+# Force reinstall deps
+ash installer.sh --force
+
+# Manual update
+/usr/local/bin/update-proxy.sh
+
+# Manual WARP refresh
+/usr/local/bin/warp-refresh.sh
+
+# Check status
+prox-menu  # → pilih 1
+
+# Diagnose issues
+prox-menu  # → pilih 2
+```
+
+## Output Files
+
+- `output/live-proxies.json` — Raw scan results
+- `output/live-proxies.mihomo.yml` — Mihomo proxy-provider format
+- `output/live-proxies.singbox.json` — Sing-box config format
+- `output/latest-summary.json` — Scan summary
 
 ## GitHub Actions
 
-Workflow: `.github/workflows/free-proxy-scan.yml`
-
-- trigger manual `workflow_dispatch`
-- trigger terjadwal tiap 12 jam
-- 4 shard paralel
-- merge hasil shard
-- commit hasil terbaru ke branch repo
-
-File yang akan di-replace di setiap run:
-
-- `output/live-proxies.json`
-- `output/live-proxies.singbox.json`
-- `output/latest-summary.json`
-
-Jika isi file tidak berubah, workflow tidak membuat commit baru.
-
-## Menjalankan lokal
-
-Siapkan binary:
-
-```bash
-./get-singbox.sh
-```
-
-Jalankan scan penuh:
-
-```bash
-python3 freeproxy.py scan
-```
-
-Jalankan satu shard manual:
-
-```bash
-python3 freeproxy.py scan --shard-index 0 --shard-count 4
-```
-
-## Catatan operasional
-
-- live test tidak memakai service sistem
-- setiap kandidat dites dengan config sementara
-- hasil `output/live-proxies.singbox.json` bisa dipakai consumer lain untuk YACD/sing-box
-- file `wg.py` yang lama bukan bagian alur utama repo ini
-
-Lihat [AGENTS.md](/workspaces/free-proxy-singbox/AGENTS.md:1) untuk aturan perubahan repo dan [CONTEXT.md](/workspaces/free-proxy-singbox/CONTEXT.md:1) untuk konteks arsitektur.
+- Scan tiap 12 jam (4 shard paralel)
+- Merge hasil → commit ke repo
+- Proxy list auto-update
