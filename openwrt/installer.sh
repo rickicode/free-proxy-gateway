@@ -234,18 +234,22 @@ uci commit nikki 2>/dev/null
 ok "UCI configured"
 
 # ── START NIKKI ─────────────────────────────────
-echo -n "  Start Nikki: "
-/etc/init.d/nikki restart 2>/dev/null
-sleep 5
-if pgrep -x mihomo >/dev/null 2>&1; then
-  ok "Mihomo running (PID $(pgrep -x mihomo))"
+echo -n "  Nikki status: "
+if pgrep -f mihomo >/dev/null 2>&1; then
+  skip "Mihomo already running (PID $(pgrep -f mihomo | head -1))"
 else
-  # Wait a bit more and check again
-  sleep 3
-  if pgrep -x mihomo >/dev/null 2>&1; then
-    ok "Mihomo running (PID $(pgrep -x mihomo))"
+  info "Starting Nikki..."
+  /etc/init.d/nikki restart 2>/dev/null
+  sleep 5
+  if pgrep -f mihomo >/dev/null 2>&1; then
+    ok "Mihomo running (PID $(pgrep -f mihomo | head -1))"
   else
-    fail "Mihomo gagal start — cek: tail /var/log/nikki/core.log"
+    sleep 3
+    if pgrep -f mihomo >/dev/null 2>&1; then
+      ok "Mihomo running (PID $(pgrep -f mihomo | head -1))"
+    else
+      fail "Mihomo gagal start — cek: tail /var/log/nikki/core.log"
+    fi
   fi
 fi
 
@@ -269,42 +273,28 @@ else
 fi
 
 echo -n "  Proxies: "
-proxy_count=$(curl -s -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/providers/proxies 2>/dev/null | python3 -c "import json,sys; d=json.loads(json.load(sys.stdin)['out-data']); print(len(d.get('providers',{}).get('free',{}).get('proxies',[])))" 2>/dev/null || echo "0")
+# Use proxies API to count PROXY-FREE members
+proxy_count=$(curl -s -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/proxies/PROXY-FREE 2>/dev/null | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('all',[])))" 2>/dev/null || echo "0")
 if [ "$proxy_count" -gt 0 ]; then
   ok "$proxy_count proxies loaded"
 else
-  # Try alternative check
-  proxy_count=$(curl -s -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/proxies 2>/dev/null | python3 -c "import json,sys; d=json.loads(json.load(sys.stdin)['out-data']); count=sum(1 for n,i in d.get('proxies',{}).items() if i.get('type','')=='URLTest' and 'FREE' in n); print(count)" 2>/dev/null || echo "0")
-  if [ "$proxy_count" -gt 0 ]; then
-    ok "$proxy_count proxy groups loaded"
-  else
-    fail "No proxies loaded"
-  fi
+  fail "No proxies loaded"
 fi
 
 # Get proxy count for summary
-proxy_count=$(curl -s -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/providers/proxies 2>/dev/null | python3 -c "import json,sys; d=json.loads(json.load(sys.stdin)['out-data']); print(len(d.get('providers',{}).get('free',{}).get('proxies',[])))" 2>/dev/null || echo "0")
+proxy_count=$(curl -s -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/proxies/PROXY-FREE 2>/dev/null | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('all',[])))" 2>/dev/null || echo "0")
 
 echo -n "  WARP: "
-if [ -f /etc/nikki/run/providers/warp.yml ] && [ -s /etc/nikki/run/providers/warp.yml ]; then
-  warp_count=$(grep -c "private-key" /etc/nikki/run/providers/warp.yml 2>/dev/null || echo "0")
-  if [ "$warp_count" -gt 0 ]; then
-    # Check if WARP provider loaded successfully
-    warp_loaded=$(curl -s -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/providers/proxies 2>/dev/null | python3 -c "import json,sys; d=json.loads(json.load(sys.stdin)['out-data']); print(len(d.get('providers',{}).get('warp',{}).get('proxies',[])))" 2>/dev/null || echo "0")
-    if [ "$warp_loaded" -gt 0 ]; then
-      ok "$warp_loaded WARP proxies loaded"
-    else
-      echo "${Y}⚠ WARP file exists but not loaded (check key format)${N}"
-      warp_loaded=0
-    fi
-  else
-    echo "${Y}⚠ WARP file exists but no valid keys${N}"
-    warp_loaded=0
-  fi
+# Check WARP via proxy group
+warp_loaded=$(curl -s -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/proxies/WARP-LB 2>/dev/null | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('all',[])))" 2>/dev/null || echo "0")
+if [ "$warp_loaded" -gt 0 ]; then
+  ok "$warp_loaded WARP proxies loaded"
 else
-  echo "${Y}⚠ WARP not configured${N}"
-  warp_loaded=0
+  echo "${Y}⚠ WARP not loaded (check key format)${N}"
 fi
+
+# Get WARP count for summary
+warp_loaded=$(curl -s -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/proxies/WARP-LB 2>/dev/null | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('all',[])))" 2>/dev/null || echo "0")
 
 echo ""
 echo "${B}╔══════════════════════════════════════════════════╗${N}"
