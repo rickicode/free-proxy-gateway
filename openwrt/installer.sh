@@ -314,7 +314,7 @@ echo "  ${W}Proxy Groups:${N}"
 # Show all proxy groups
 curl -s -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/proxies 2>/dev/null | python3 -c "
 import json,sys
-d=json.loads(json.load(sys.stdin)['out-data'])
+d=json.load(sys.stdin)
 for n,i in d.get('proxies',{}).items():
     t=i.get('type','')
     m=len(i.get('all',[]))
