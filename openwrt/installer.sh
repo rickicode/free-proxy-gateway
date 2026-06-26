@@ -236,12 +236,13 @@ ok "UCI configured"
 
 # ── FIREWALL ────────────────────────────────────
 echo -n "  DNS redirect: "
-if iptables -t nat -C PREROUTING -p tcp --dport 53 -j REDIRECT --to-ports 1053 2>/dev/null; then
-  skip "DNS redirect"
+if nft list chain inet nikki router_dns_hijack >/dev/null 2>&1; then
+  skip "Nikki handles via nftables"
 else
-  iptables -t nat -A PREROUTING -p tcp --dport 53 -j REDIRECT --to-ports 1053 2>/dev/null
-  iptables -t nat -A PREROUTING -p udp --dport 53 -j REDIRECT --to-ports 1053 2>/dev/null
-  ok "DNS redirect added"
+  # Legacy iptables fallback
+  iptables -t nat -A PREROUTING -p tcp --dport 53 -j REDIRECT --to-ports 1053 2>/dev/null || true
+  iptables -t nat -A PREROUTING -p udp --dport 53 -j REDIRECT --to-ports 1053 2>/dev/null || true
+  ok "DNS redirect added (iptables)"
 fi
 
 # ── START NIKKI ─────────────────────────────────
