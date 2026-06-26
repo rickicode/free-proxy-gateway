@@ -166,10 +166,9 @@ echo ""
 echo -n "  update-proxy.sh: "
 cat > /usr/local/bin/update-proxy.sh << 'EOF'
 #!/bin/sh
-BASE_URL="https://api.github.com/repos/rickicode/free-proxy-gateway/contents"
 RAW_URL="https://raw.githubusercontent.com/rickicode/free-proxy-gateway/refs/heads/main"
 CHANGED=0
-curl -sL -H "Accept: application/vnd.github.v3.raw" "$BASE_URL/openwrt/base.yml" -o /etc/nikki/mixin.yaml.tmp 2>/dev/null
+curl -sL "$RAW_URL/openwrt/base.yml" -o /etc/nikki/mixin.yaml.tmp 2>/dev/null
 if head -1 /etc/nikki/mixin.yaml.tmp | grep -q "Base config"; then
   mv /etc/nikki/mixin.yaml.tmp /etc/nikki/mixin.yaml
   CHANGED=1
@@ -237,11 +236,17 @@ ok "UCI configured"
 # ── START NIKKI ─────────────────────────────────
 echo -n "  Start Nikki: "
 /etc/init.d/nikki restart 2>/dev/null
-sleep 3
+sleep 5
 if pgrep -x mihomo >/dev/null 2>&1; then
   ok "Mihomo running (PID $(pgrep -x mihomo))"
 else
-  fail "Mihomo gagal start — cek: tail /var/log/nikki/core.log"
+  # Wait a bit more and check again
+  sleep 3
+  if pgrep -x mihomo >/dev/null 2>&1; then
+    ok "Mihomo running (PID $(pgrep -x mihomo))"
+  else
+    fail "Mihomo gagal start — cek: tail /var/log/nikki/core.log"
+  fi
 fi
 
 echo ""
@@ -268,15 +273,37 @@ proxy_count=$(curl -s -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/p
 if [ "$proxy_count" -gt 0 ]; then
   ok "$proxy_count proxies loaded"
 else
-  fail "No proxies loaded"
+  # Try alternative check
+  proxy_count=$(curl -s -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/proxies 2>/dev/null | python3 -c "import json,sys; d=json.loads(json.load(sys.stdin)['out-data']); count=sum(1 for n,i in d.get('proxies',{}).items() if i.get('type','')=='URLTest' and 'FREE' in n); print(count)" 2>/dev/null || echo "0")
+  if [ "$proxy_count" -gt 0 ]; then
+    ok "$proxy_count proxy groups loaded"
+  else
+    fail "No proxies loaded"
+  fi
 fi
 
+# Get proxy count for summary
+proxy_count=$(curl -s -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/providers/proxies 2>/dev/null | python3 -c "import json,sys; d=json.loads(json.load(sys.stdin)['out-data']); print(len(d.get('providers',{}).get('free',{}).get('proxies',[])))" 2>/dev/null || echo "0")
+
 echo -n "  WARP: "
-warp_count=$(curl -s -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/providers/proxies 2>/dev/null | python3 -c "import json,sys; d=json.loads(json.load(sys.stdin)['out-data']); print(len(d.get('providers',{}).get('warp',{}).get('proxies',[])))" 2>/dev/null || echo "0")
-if [ "$warp_count" -gt 0 ]; then
-  ok "$warp_count WARP proxies"
+if [ -f /etc/nikki/run/providers/warp.yml ] && [ -s /etc/nikki/run/providers/warp.yml ]; then
+  warp_count=$(grep -c "private-key" /etc/nikki/run/providers/warp.yml 2>/dev/null || echo "0")
+  if [ "$warp_count" -gt 0 ]; then
+    # Check if WARP provider loaded successfully
+    warp_loaded=$(curl -s -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/providers/proxies 2>/dev/null | python3 -c "import json,sys; d=json.loads(json.load(sys.stdin)['out-data']); print(len(d.get('providers',{}).get('warp',{}).get('proxies',[])))" 2>/dev/null || echo "0")
+    if [ "$warp_loaded" -gt 0 ]; then
+      ok "$warp_loaded WARP proxies loaded"
+    else
+      echo "${Y}⚠ WARP file exists but not loaded (check key format)${N}"
+      warp_loaded=0
+    fi
+  else
+    echo "${Y}⚠ WARP file exists but no valid keys${N}"
+    warp_loaded=0
+  fi
 else
-  echo "${Y}⚠ WARP belum ter-load${N}"
+  echo "${Y}⚠ WARP not configured${N}"
+  warp_loaded=0
 fi
 
 echo ""
@@ -284,13 +311,37 @@ echo "${B}╔══════════════════════�
 echo "${B}║${G}       Install selesai!                             ${B}║${N}"
 echo "${B}╚══════════════════════════════════════════════════╝${N}"
 echo ""
-echo "  Jalankan: ${W}prox-menu${N} untuk membuka menu"
+echo "  ${G}Status:${N}"
+echo "    Nikki:     ${G}✓${N} Running"
+echo "    Proxy:     ${G}✓${N} $proxy_count proxies loaded"
+if [ "$warp_loaded" -gt 0 ]; then
+  echo "    WARP:      ${G}✓${N} $warp_loaded proxies loaded"
+else
+  echo "    WARP:      ${Y}⚠${N} Not loaded (check key format)"
+fi
 echo ""
-echo "  Proxy endpoints:"
+echo "  ${W}Proxy Groups:${N}"
+# Show all proxy groups
+curl -s -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/proxies 2>/dev/null | python3 -c "
+import json,sys
+d=json.loads(json.load(sys.stdin)['out-data'])
+for n,i in d.get('proxies',{}).items():
+    t=i.get('type','')
+    m=len(i.get('all',[]))
+    if t in ('Selector','URLTest','LoadBalance'):
+        print(f'    {n:20s} {t:12s} {m:4d} members')
+" 2>/dev/null
+echo ""
+echo "  ${W}Commands:${N}"
+echo "    prox-menu              — Interactive menu"
+echo "    /usr/local/bin/update-proxy.sh  — Manual update"
+echo "    /usr/local/bin/warp-refresh.sh  — Refresh WARP"
+echo ""
+echo "  ${W}Proxy Endpoints:${N}"
 echo "    1010 — WAN (default WAN2)"
 echo "    1011 — FREE proxy"
 echo "    1012 — ASIA proxy"
 echo "    1013 — WARP"
 echo ""
-echo "  Dashboard: http://$(ip -4 addr show br-lan 2>/dev/null | grep inet | head -1 | awk '{print $2}' | cut -d/ -f1):9090"
+echo "  ${W}Dashboard:${N} http://$(ip -4 addr show br-lan 2>/dev/null | grep inet | head -1 | awk '{print $2}' | cut -d/ -f1):9090"
 echo ""
