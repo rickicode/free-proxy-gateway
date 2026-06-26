@@ -209,7 +209,7 @@ echo ""
 
 # ── INSTALL PROX-MENU ───────────────────────────
 echo -n "  prox-menu: "
-curl -sL "$REPO/openwrt/installer.sh" -o /usr/bin/prox-menu 2>/dev/null
+curl -sL "$REPO/openwrt/prox-menu.sh" -o /usr/bin/prox-menu 2>/dev/null
 chmod +x /usr/bin/prox-menu
 if [ -f /usr/bin/prox-menu ]; then
   ok "prox-menu installed (/usr/bin/prox-menu)"
