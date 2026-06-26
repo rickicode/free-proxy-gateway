@@ -50,7 +50,7 @@ case "$ARCH" in
   *) ARCH_NAME="amd64" ;;
 esac
 
-echo "${W}[1/7] Dependencies${N}"
+echo "${W}[1/6] Dependencies${N}"
 echo ""
 
 # ── NIKKI ───────────────────────────────────────
@@ -110,7 +110,7 @@ else
 fi
 
 echo ""
-echo "${W}[2/7] Config${N}"
+echo "${W}[2/6] Config${N}"
 echo ""
 
 # ── BASE CONFIG ─────────────────────────────────
@@ -136,7 +136,7 @@ else
 fi
 
 echo ""
-echo "${W}[3/7] WARP${N}"
+echo "${W}[3/6] WARP${N}"
 echo ""
 
 # ── WARP SETUP ──────────────────────────────────
@@ -159,7 +159,7 @@ else
 fi
 
 echo ""
-echo "${W}[4/7] Cron${N}"
+echo "${W}[4/6] Cron${N}"
 echo ""
 
 # ── UPDATE SCRIPT ───────────────────────────────
@@ -205,7 +205,7 @@ echo -n "  Crontab: "
 ok "Cron terpasang (proxy 12 jam, WARP 2 hari)"
 
 echo ""
-echo "${W}[5/7] Prox-Menu${N}"
+echo "${W}[5/6] Prox-Menu${N}"
 echo ""
 
 # ── INSTALL PROX-MENU ───────────────────────────
@@ -219,7 +219,7 @@ else
 fi
 
 echo ""
-echo "${W}[6/7] Nikki${N}"
+echo "${W}[6/6] Nikki${N}"
 echo ""
 
 # ── NIKKI CONFIG ────────────────────────────────
@@ -234,17 +234,6 @@ uci set nikki.mixin.api_secret="hijinet" 2>/dev/null
 uci commit nikki 2>/dev/null
 ok "UCI configured"
 
-# ── FIREWALL ────────────────────────────────────
-echo -n "  DNS redirect: "
-if nft list chain inet nikki router_dns_hijack >/dev/null 2>&1; then
-  skip "Nikki handles via nftables"
-else
-  # Legacy iptables fallback
-  iptables -t nat -A PREROUTING -p tcp --dport 53 -j REDIRECT --to-ports 1053 2>/dev/null || true
-  iptables -t nat -A PREROUTING -p udp --dport 53 -j REDIRECT --to-ports 1053 2>/dev/null || true
-  ok "DNS redirect added (iptables)"
-fi
-
 # ── START NIKKI ─────────────────────────────────
 echo -n "  Start Nikki: "
 /etc/init.d/nikki restart 2>/dev/null
@@ -256,7 +245,7 @@ else
 fi
 
 echo ""
-echo "${W}[7/7] Verifikasi${N}"
+echo "${W}═══ Verifikasi ═══${N}"
 echo ""
 
 # ── VERIFY ──────────────────────────────────────
