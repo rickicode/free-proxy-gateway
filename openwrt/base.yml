@@ -14,8 +14,8 @@ proxies:
     type: direct
     interface-name: eth1
 
-# Public proxy inbound listeners
-inbound:
+# Public proxy listeners
+listeners:
   - name: PROXY-1010
     type: mixed
     port: 1010
