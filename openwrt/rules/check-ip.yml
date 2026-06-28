@@ -3,8 +3,6 @@ payload:
   - DOMAIN-SUFFIX,ifconfig.me
   - DOMAIN,ifconfig.co
   - DOMAIN-SUFFIX,ifconfig.co
-  - DOMAIN,icanhazip.com
-  - DOMAIN-SUFFIX,icanhazip.com
   - DOMAIN,ip.me
   - DOMAIN,ip.sb
   - DOMAIN-SUFFIX,ip.sb
