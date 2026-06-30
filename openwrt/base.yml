@@ -95,6 +95,7 @@ proxy-groups:
       - PROXY-US
       - PROXY-ASIA
       - PROXY-EU
+      - WARP-LB
       - PROXY-WARP
 
   - name: PROXY-1011
@@ -109,6 +110,7 @@ proxy-groups:
       - PROXY-EU
       - WAN2
       - DIRECT
+      - WARP-LB
       - PROXY-WARP
 
   - name: PROXY-1012
@@ -123,6 +125,7 @@ proxy-groups:
       - PROXY-EU
       - WAN2
       - DIRECT
+      - WARP-LB
       - PROXY-WARP
 
   - name: PROXY-1013
@@ -150,6 +153,7 @@ proxy-groups:
       - PROXY-US
       - PROXY-ASIA
       - PROXY-EU
+      - WARP-LB
       - PROXY-WARP
 
   # ── PROXY POOLS ────────────────────────────────
@@ -241,6 +245,7 @@ proxy-groups:
       - PROXY-US
       - PROXY-ASIA
       - PROXY-EU
+      - WARP-LB
       - PROXY-WARP
 
   # ── SERVICE ────────────────────────────────────
@@ -258,6 +263,7 @@ proxy-groups:
       - PROXY-US
       - PROXY-ASIA
       - PROXY-EU
+      - WARP-LB
       - PROXY-WARP
 
   - name: AI
@@ -274,6 +280,7 @@ proxy-groups:
       - PROXY-US
       - PROXY-ASIA
       - PROXY-EU
+      - WARP-LB
       - PROXY-WARP
 
   - name: CHECK-IP
@@ -290,6 +297,7 @@ proxy-groups:
       - PROXY-US
       - PROXY-ASIA
       - PROXY-EU
+      - WARP-LB
       - PROXY-WARP
 
   - name: SOCIAL
@@ -306,6 +314,7 @@ proxy-groups:
       - PROXY-US
       - PROXY-ASIA
       - PROXY-EU
+      - WARP-LB
       - PROXY-WARP
 
 rule-providers:
