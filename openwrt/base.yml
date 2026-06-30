@@ -156,6 +156,14 @@ proxy-groups:
     url: http://www.gstatic.com/generate_204
     interval: 300
 
+  - name: PROXY-LB-FREE
+    type: load-balance
+    use:
+      - free
+    filter: "(?!.*(?:PROXY-|WARP-))"
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+
   - name: PROXY-ID
     type: url-test
     use:
