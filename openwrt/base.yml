@@ -95,31 +95,17 @@ proxy-groups:
     proxies:
       - WAN2
       - DIRECT
-      - WAN-AUTO
-      - PROXY-FREE
-      - PROXY-FREE
-      - PROXY-ID
-      - PROXY-SG
-      - PROXY-US
-      - PROXY-ASIA
-      - PROXY-EU
-      - WARP-LB
-      - PROXY-WARP
 
   - name: PROXY-1011
-    type: select
+    type: load-balance
+    strategy: round-robin
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    use:
+      - warp
     proxies:
-      - PROXY-FREE
-      - PROXY-FREE
-      - PROXY-ID
-      - PROXY-SG
-      - PROXY-US
-      - PROXY-ASIA
-      - PROXY-EU
-      - WAN2
-      - DIRECT
       - WARP-LB
-      - PROXY-WARP
+      - DIRECT
 
   - name: PROXY-1012
     type: select
@@ -128,46 +114,34 @@ proxy-groups:
       - PROXY-ID
       - PROXY-SG
       - PROXY-FREE
-      - PROXY-FREE
-      - PROXY-US
-      - PROXY-EU
-      - WAN2
       - DIRECT
       - WARP-LB
-      - PROXY-WARP
 
   - name: PROXY-1013
     type: select
-    use:
-      - warp
     proxies:
-      - WARP-LB
-      - DIRECT
+      - PROXY-EU
       - PROXY-FREE
-      - PROXY-US
-      - PROXY-ASIA
+      - DIRECT
+      - WARP-LB
 
   - name: PROXY-1014
     type: select
     proxies:
-      - PROXY-ASIA
-      - PROXY-ID
-      - PROXY-SG
+      - PROXY-US
       - PROXY-FREE
-      - WAN2
       - DIRECT
       - WARP-LB
-      - PROXY-WARP
 
   - name: PROXY-1015
     type: select
     proxies:
-      - PROXY-US
       - PROXY-FREE
-      - WAN2
+      - PROXY-ASIA
+      - PROXY-EU
+      - PROXY-US
       - DIRECT
       - WARP-LB
-      - PROXY-WARP
 
   # ── GLOBAL ─────────────────────────────────────
   - name: GLOBAL
