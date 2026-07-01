@@ -97,7 +97,7 @@ proxy-groups:
       - DIRECT
       - WAN-AUTO
       - PROXY-FREE
-      - PROXY-LB-FREE
+      - PROXY-FREE
       - PROXY-ID
       - PROXY-SG
       - PROXY-US
@@ -110,7 +110,7 @@ proxy-groups:
     type: select
     proxies:
       - PROXY-FREE
-      - PROXY-LB-FREE
+      - PROXY-FREE
       - PROXY-ID
       - PROXY-SG
       - PROXY-US
@@ -128,7 +128,7 @@ proxy-groups:
       - PROXY-ID
       - PROXY-SG
       - PROXY-FREE
-      - PROXY-LB-FREE
+      - PROXY-FREE
       - PROXY-US
       - PROXY-EU
       - WAN2
@@ -137,43 +137,33 @@ proxy-groups:
       - PROXY-WARP
 
   - name: PROXY-1013
-    type: load-balance
-    strategy: round-robin
-    url: http://www.gstatic.com/generate_204
-    interval: 300
+    type: select
     use:
       - warp
-      - free
     proxies:
       - WARP-LB
       - DIRECT
+      - PROXY-FREE
+      - PROXY-US
       - PROXY-ASIA
 
   - name: PROXY-1014
-    type: load-balance
-    strategy: round-robin
-    url: http://www.gstatic.com/generate_204
-    interval: 300
+    type: select
     proxies:
       - PROXY-ASIA
       - PROXY-ID
       - PROXY-SG
       - PROXY-FREE
-      - PROXY-LB-FREE
       - WAN2
       - DIRECT
       - WARP-LB
       - PROXY-WARP
 
   - name: PROXY-1015
-    type: load-balance
-    strategy: round-robin
-    url: http://www.gstatic.com/generate_204
-    interval: 300
+    type: select
     proxies:
       - PROXY-US
       - PROXY-FREE
-      - PROXY-LB-FREE
       - WAN2
       - DIRECT
       - WARP-LB
@@ -187,7 +177,7 @@ proxy-groups:
       - WAN2
       - WAN-AUTO
       - PROXY-FREE
-      - PROXY-LB-FREE
+      - PROXY-FREE
       - PROXY-ID
       - PROXY-SG
       - PROXY-US
@@ -198,15 +188,8 @@ proxy-groups:
 
   # ── PROXY POOLS ────────────────────────────────
   - name: PROXY-FREE
-    type: url-test
-    use:
-      - free
-    filter: "(?!.*(?:PROXY-|WARP-))"
-    url: http://www.gstatic.com/generate_204
-    interval: 300
-
-  - name: PROXY-LB-FREE
     type: load-balance
+    strategy: round-robin
     use:
       - free
     filter: "(?!.*(?:PROXY-|WARP-))"
@@ -230,7 +213,8 @@ proxy-groups:
     interval: 300
 
   - name: PROXY-US
-    type: url-test
+    type: load-balance
+    strategy: round-robin
     use:
       - free
     filter: "^🇺🇸"
@@ -238,7 +222,8 @@ proxy-groups:
     interval: 300
 
   - name: PROXY-ASIA
-    type: url-test
+    type: load-balance
+    strategy: round-robin
     use:
       - free
     filter: "^(?:🇮🇩|🇸🇬|🇲🇾|🇹🇭|🇻🇳|🇵🇭|🇯🇵|🇰🇷|🇹🇼|🇭🇰|🇮🇳)"
@@ -246,7 +231,8 @@ proxy-groups:
     interval: 300
 
   - name: PROXY-EU
-    type: url-test
+    type: load-balance
+    strategy: round-robin
     use:
       - free
     filter: "^(?:🇩🇪|🇫🇷|🇳🇱|🇬🇧|🇸🇪|🇳🇴|🇫🇮|🇩🇰|🇵🇱|🇨🇿|🇦🇹|🇨🇭|🇧🇪|🇪🇸|🇵🇹|🇮🇹)"
@@ -279,7 +265,7 @@ proxy-groups:
       - WAN-AUTO
       - GLOBAL
       - PROXY-FREE
-      - PROXY-LB-FREE
+      - PROXY-FREE
       - PROXY-ID
       - PROXY-SG
       - PROXY-US
@@ -297,7 +283,7 @@ proxy-groups:
       - WAN-AUTO
       - GLOBAL
       - PROXY-FREE
-      - PROXY-LB-FREE
+      - PROXY-FREE
       - PROXY-ID
       - PROXY-SG
       - PROXY-US
@@ -314,7 +300,7 @@ proxy-groups:
       - WAN-AUTO
       - GLOBAL
       - PROXY-FREE
-      - PROXY-LB-FREE
+      - PROXY-FREE
       - PROXY-ID
       - PROXY-SG
       - PROXY-US
@@ -331,7 +317,7 @@ proxy-groups:
       - WAN-AUTO
       - GLOBAL
       - PROXY-FREE
-      - PROXY-LB-FREE
+      - PROXY-FREE
       - PROXY-ID
       - PROXY-SG
       - PROXY-US
@@ -348,7 +334,7 @@ proxy-groups:
       - WAN-AUTO
       - GLOBAL
       - PROXY-FREE
-      - PROXY-LB-FREE
+      - PROXY-FREE
       - PROXY-ID
       - PROXY-SG
       - PROXY-US
