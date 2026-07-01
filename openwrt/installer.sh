@@ -199,7 +199,7 @@ ok "warp-refresh.sh"
 # ── CRONTAB ─────────────────────────────────────
 echo -n "  Crontab: "
 (crontab -l 2>/dev/null | grep -v update-proxy | grep -v warp-refresh; \
- echo "0 11 * * * /usr/local/bin/update-proxy.sh"; \
+ echo "1 */6 * * * /usr/local/bin/update-proxy.sh"; \
  echo "0 3 */2 * * /usr/local/bin/warp-refresh.sh") | crontab -
 ok "Cron terpasang (proxy 12 jam, WARP 2 hari)"
 
