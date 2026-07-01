@@ -23,6 +23,7 @@ DEFAULT_BINARY = ROOT / "bin" / "sing-box"
 DEFAULT_OUTPUT = ROOT / "output" / "live-proxies.json"
 
 SOURCES = [
+    # Original sources
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/sub_merge_base64.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-config/main/Splitted-By-Protocol/vless.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-config/main/Splitted-By-Protocol/trojan.txt",
@@ -30,6 +31,40 @@ SOURCES = [
     "https://raw.githubusercontent.com/barry-far/V2ray-config/main/Splitted-By-Protocol/ss.txt",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/splitted/ss.txt",
     "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/All_Configs_Sub.txt",
+
+    # gfpcom/free-proxy-list (1.9M+ proxies, hourly update)
+    "https://raw.githubusercontent.com/wiki/gfpcom/free-proxy-list/lists/vless.txt",
+    "https://raw.githubusercontent.com/wiki/gfpcom/free-proxy-list/lists/vmess.txt",
+    "https://raw.githubusercontent.com/wiki/gfpcom/free-proxy-list/lists/trojan.txt",
+    "https://raw.githubusercontent.com/wiki/gfpcom/free-proxy-list/lists/ss.txt",
+
+    # sevcator/5ubscrpt10n (hourly update)
+    "https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/protocols/vl.txt",
+    "https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/protocols/vm.txt",
+    "https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/protocols/tr.txt",
+    "https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/protocols/ss.txt",
+
+    # Pawdroid/Free-servers (18k stars, every 6h)
+    "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub",
+
+    # MhdiTaheri/V2rayCollector (50+ Telegram channels)
+    "https://raw.githubusercontent.com/MhdiTaheri/V2rayCollector/main/sub/mix",
+
+    # 0xRadikal/Free-v2ray-Configs (22 sources, every 30min)
+    "https://cdn.jsdelivr.net/gh/0xRadikal/Free-v2ray-Configs@main/all/configs.txt",
+    "https://cdn.jsdelivr.net/gh/0xRadikal/Free-v2ray-Configs@main/light/configs.txt",
+
+    # MahanKenway/Freedom-V2Ray (auto-ping tested, every 2h)
+    "https://raw.githubusercontent.com/MahanKenway/Freedom-V2Ray/main/configs/mix.txt",
+
+    # MohammadBahemmat/V2ray-Collector (every 15min)
+    "https://raw.githubusercontent.com/MohammadBahemmat/V2ray-Collector/main/all_servers.txt",
+
+    # jafarm83/ConfigV2Ray (every 20min, 18k commits)
+    "https://raw.githubusercontent.com/jafarm83/ConfigV2Ray/main/jafar.txt",
+
+    # Romaxa55/MegaV_Public
+    "https://raw.githubusercontent.com/Romaxa55/MegaV_Public/main/subs/all.txt",
 ]
 
 SUPPORTED_SCHEMES = ("trojan://", "vless://", "vmess://", "ss://")
