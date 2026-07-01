@@ -137,18 +137,23 @@ proxy-groups:
       - PROXY-WARP
 
   - name: PROXY-1013
-    type: select
+    type: load-balance
+    strategy: round-robin
+    url: http://www.gstatic.com/generate_204
+    interval: 300
     use:
       - warp
+      - free
     proxies:
       - WARP-LB
       - DIRECT
-      - PROXY-FREE
-      - PROXY-LB-FREE
       - PROXY-ASIA
 
   - name: PROXY-1014
-    type: select
+    type: load-balance
+    strategy: round-robin
+    url: http://www.gstatic.com/generate_204
+    interval: 300
     proxies:
       - PROXY-ASIA
       - PROXY-ID
@@ -161,7 +166,10 @@ proxy-groups:
       - PROXY-WARP
 
   - name: PROXY-1015
-    type: select
+    type: load-balance
+    strategy: round-robin
+    url: http://www.gstatic.com/generate_204
+    interval: 300
     proxies:
       - PROXY-US
       - PROXY-FREE
