@@ -108,20 +108,24 @@ proxy-groups:
       - DIRECT
 
   - name: PROXY-1012
-    type: select
+    type: fallback
+    url: http://www.gstatic.com/generate_204
+    interval: 300
     proxies:
       - PROXY-ASIA
       - PROXY-ID
       - PROXY-SG
-      - DIRECT
       - WARP-LB
+      - DIRECT
 
   - name: PROXY-1013
-    type: select
+    type: fallback
+    url: http://www.gstatic.com/generate_204
+    interval: 300
     proxies:
       - PROXY-EU
-      - DIRECT
       - WARP-LB
+      - DIRECT
 
   - name: PROXY-1014
     type: select
