@@ -32,6 +32,14 @@ listeners:
     type: mixed
     port: 1013
     proxy: PROXY-1013
+  - name: PROXY-1014
+    type: mixed
+    port: 1014
+    proxy: PROXY-1014
+  - name: PROXY-1015
+    type: mixed
+    port: 1015
+    proxy: PROXY-1015
 
 dns:
   enable: true
@@ -138,6 +146,30 @@ proxy-groups:
       - PROXY-FREE
       - PROXY-LB-FREE
       - PROXY-ASIA
+
+  - name: PROXY-1014
+    type: select
+    proxies:
+      - PROXY-ASIA
+      - PROXY-ID
+      - PROXY-SG
+      - PROXY-FREE
+      - PROXY-LB-FREE
+      - WAN2
+      - DIRECT
+      - WARP-LB
+      - PROXY-WARP
+
+  - name: PROXY-1015
+    type: select
+    proxies:
+      - PROXY-US
+      - PROXY-FREE
+      - PROXY-LB-FREE
+      - WAN2
+      - DIRECT
+      - WARP-LB
+      - PROXY-WARP
 
   # ── GLOBAL ─────────────────────────────────────
   - name: GLOBAL
