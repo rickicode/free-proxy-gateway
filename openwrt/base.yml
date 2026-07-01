@@ -160,7 +160,7 @@ proxy-groups:
   # ── PROXY POOLS ────────────────────────────────
   - name: PROXY-FREE
     type: load-balance
-    strategy: least-loads
+    strategy: consistent-hashing
     use:
       - free
     filter: "(?!.*(?:PROXY-|WARP-))"
@@ -185,7 +185,7 @@ proxy-groups:
 
   - name: PROXY-US
     type: load-balance
-    strategy: least-loads
+    strategy: consistent-hashing
     use:
       - free
     filter: "^🇺🇸"
@@ -194,7 +194,7 @@ proxy-groups:
 
   - name: PROXY-ASIA
     type: load-balance
-    strategy: least-loads
+    strategy: consistent-hashing
     use:
       - free
     filter: "^(?:🇮🇩|🇸🇬|🇲🇾|🇹🇭|🇻🇳|🇵🇭|🇯🇵|🇰🇷|🇹🇼|🇭🇰|🇮🇳)"
@@ -203,7 +203,7 @@ proxy-groups:
 
   - name: PROXY-EU
     type: load-balance
-    strategy: least-loads
+    strategy: consistent-hashing
     use:
       - free
     filter: "^(?:🇩🇪|🇫🇷|🇳🇱|🇬🇧|🇸🇪|🇳🇴|🇫🇮|🇩🇰|🇵🇱|🇨🇿|🇦🇹|🇨🇭|🇧🇪|🇪🇸|🇵🇹|🇮🇹)"
