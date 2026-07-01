@@ -113,7 +113,6 @@ proxy-groups:
       - PROXY-ASIA
       - PROXY-ID
       - PROXY-SG
-      - PROXY-FREE
       - DIRECT
       - WARP-LB
 
@@ -121,7 +120,6 @@ proxy-groups:
     type: select
     proxies:
       - PROXY-EU
-      - PROXY-FREE
       - DIRECT
       - WARP-LB
 
@@ -129,7 +127,6 @@ proxy-groups:
     type: select
     proxies:
       - PROXY-US
-      - PROXY-FREE
       - DIRECT
       - WARP-LB
 
