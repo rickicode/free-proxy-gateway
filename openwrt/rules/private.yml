@@ -1,5 +1,7 @@
 payload:
   - GEOSITE,private
   - GEOIP,private,DIRECT,no-resolve
+  # CGNAT range — covers Tailscale (100.124.x) & NetBird (100.98.x)
+  - IP-CIDR,100.64.0.0/10,DIRECT,no-resolve
   - GEOSITE,cn
   - GEOIP,cn,DIRECT,no-resolve
