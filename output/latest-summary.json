@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-07-13T15:36:15Z",
-  "candidate_count": 438142,
-  "tcp_ok_count": 55450,
-  "live_count": 1486,
+  "generated_at": "2026-07-13T20:17:14Z",
+  "candidate_count": 585961,
+  "tcp_ok_count": 74221,
+  "live_count": 1753,
   "groups": {
-    "PROXY-FREE": 1486,
+    "PROXY-FREE": 1753,
     "PROXY-ID": 0,
-    "PROXY-SG": 82,
-    "PROXY-US": 637
+    "PROXY-SG": 83,
+    "PROXY-US": 722
   }
 }
