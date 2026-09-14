@@ -42,10 +42,6 @@ for i in $(seq 1 $COUNT); do
     echo "generate failed"
     rm -rf "$work"; continue
   fi
-  if ! wgcf generate 2>/dev/null; then
-    echo "config failed"
-    rm -rf "$work"; continue
-  fi
 
   privkey=$(grep "PrivateKey" "$work/wgcf-profile.conf" 2>/dev/null | cut -d= -f2 | tr -d ' ')
   addr=$(grep "Address" "$work/wgcf-profile.conf" 2>/dev/null | cut -d= -f2 | tr -d ' ')
@@ -62,6 +58,7 @@ creds = json.load(open('$CRED_FILE')) if os.path.exists('$CRED_FILE') else {}
 creds['$label'] = {'private_key':'$privkey','address_v4':'$addr_v4','address_v6':'$addr_v6','refreshed_at':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())}
 json.dump(creds, open('$CRED_FILE','w'), indent=2)
 "
+  chmod 600 "$CRED_FILE" 2>/dev/null || true
   registered=$((registered + 1))
   sleep 3  # Rate limit protection between accounts
 done
@@ -93,6 +90,9 @@ for i in range(1, count + 1):
 with open(out_file, 'w') as f: f.write('\n'.join(lines))
 print(f"Written {out_file} ({len(lines)} lines)")
 PYEOF
+
+chmod 600 "$CRED_FILE" 2>/dev/null || true
+chmod 600 "$WARP_FILE" 2>/dev/null || true
 
 echo ""
 echo "Done. WARP credentials: $CRED_FILE"

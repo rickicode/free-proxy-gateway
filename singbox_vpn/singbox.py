@@ -247,7 +247,7 @@ def generate_config(cfg: dict, proxy_outbounds: list[dict] | None = None) -> dic
         },
         "experimental": {
             "clash_api": {
-                "external_controller": f"0.0.0.0:{scfg.get('clash_api_port', 9090)}",
+                "external_controller": f"127.0.0.1:{scfg.get('clash_api_port', 9090)}",
                 "external_ui": scfg.get("clash_api_ui", str(SINGBOX_UI)),
                 "secret": scfg.get("clash_api_secret", ""),
             }

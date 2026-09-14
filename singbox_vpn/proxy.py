@@ -213,7 +213,7 @@ def fetch_and_update(cfg: dict) -> bool:
     pcfg = cfg.get("proxy", {})
     github_raw = pcfg.get("github_raw", GITHUB_RAW)
     max_free = pcfg.get("max_free", 40)
-    secret = pcfg.get("clash_secret", "hijinet")
+    secret = pcfg.get("clash_secret", "")
     target_countries = pcfg.get("target_countries", ["US", "SG", "ID"])
     proxy_aware_selectors = pcfg.get("proxy_aware_selectors", ["GLOBAL", "GOOGLE", "OPENAI", "IPCHECK"])
 

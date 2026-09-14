@@ -3,8 +3,11 @@
 # Proxy files: warp.yml (local) + free-proxies.yml (repo)
 
 mixed-port: 7890
-allow-lan: true
-bind-address: '*'
+allow-lan: false
+bind-address: '127.0.0.1'
+# NOTE: for LAN access, set allow-lan: true and add authentication below
+# authentication:
+#   - "user:CHANGE_ME_STRONG_PASS"
 mode: rule
 log-level: warning
 ipv6: false
@@ -152,7 +155,6 @@ proxy-groups:
       - WAN2
       - WAN-AUTO
       - PROXY-FREE
-      - PROXY-FREE
       - PROXY-ID
       - PROXY-SG
       - PROXY-US
@@ -240,7 +242,6 @@ proxy-groups:
       - WAN-AUTO
       - GLOBAL
       - PROXY-FREE
-      - PROXY-FREE
       - PROXY-ID
       - PROXY-SG
       - PROXY-US
@@ -258,7 +259,6 @@ proxy-groups:
       - WAN-AUTO
       - GLOBAL
       - PROXY-FREE
-      - PROXY-FREE
       - PROXY-ID
       - PROXY-SG
       - PROXY-US
@@ -274,7 +274,6 @@ proxy-groups:
       - WAN2
       - WAN-AUTO
       - GLOBAL
-      - PROXY-FREE
       - PROXY-FREE
       - PROXY-ID
       - PROXY-SG
@@ -292,7 +291,6 @@ proxy-groups:
       - WAN-AUTO
       - GLOBAL
       - PROXY-FREE
-      - PROXY-FREE
       - PROXY-ID
       - PROXY-SG
       - PROXY-US
@@ -308,7 +306,6 @@ proxy-groups:
       - WAN2
       - WAN-AUTO
       - GLOBAL
-      - PROXY-FREE
       - PROXY-FREE
       - PROXY-ID
       - PROXY-SG
@@ -372,9 +369,6 @@ rules:
 
   # AI
   - RULE-SET,ai,AI
-
-  # Social
-  - RULE-SET,social,SOCIAL
 
   # Social
   - RULE-SET,social,SOCIAL

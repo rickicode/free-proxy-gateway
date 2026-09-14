@@ -8,7 +8,31 @@ This module contains common code used by:
 - gateway/proxy-collector.py (gateway collector)
 """
 
+import ipaddress
+
 DEFAULT_GROUPS = ("PROXY-FREE", "PROXY-ID", "PROXY-SG", "PROXY-US")
+
+
+def is_public_target(host: str, port: int) -> bool:
+    """Check that host and port target a valid public endpoint (SSRF defense)."""
+    if not host or not port:
+        return False
+    try:
+        p = int(port)
+        if not (1 <= p <= 65535):
+            return False
+    except (ValueError, TypeError):
+        return False
+    h = str(host).strip("[] \t\r\n").lower()
+    if h in {"localhost", "localhost.localdomain", "broadcasthost"} or h.endswith((".local", ".internal", ".lan", ".home")):
+        return False
+    try:
+        ip = ipaddress.ip_address(h)
+        return bool(ip.is_global and not ip.is_loopback and not ip.is_private and not ip.is_link_local and not ip.is_multicast and not ip.is_reserved)
+    except ValueError:
+        if "." not in h or any(c in h for c in " /\\:@?#"):
+            return False
+        return True
 
 
 def build_groups(records, target_countries):

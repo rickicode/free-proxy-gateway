@@ -228,8 +228,20 @@ uci set nikki.proxy.tcp_mode=tproxy 2>/dev/null
 uci set nikki.proxy.udp_mode=tproxy 2>/dev/null
 uci set nikki.proxy.ipv4_dns_hijack=1 2>/dev/null
 uci set nikki.proxy.lan_proxy=1 2>/dev/null
-uci set nikki.mixin.api_listen="[::]:9090" 2>/dev/null
-uci set nikki.mixin.api_secret="hijinet" 2>/dev/null
+uci set nikki.mixin.api_listen="127.0.0.1:9090" 2>/dev/null
+# Generate random api_secret if unset or default
+API_SECRET_FILE="/etc/nikki/api_secret"
+if [ ! -s "$API_SECRET_FILE" ]; then
+  mkdir -p /etc/nikki
+  if command -v openssl >/dev/null 2>&1; then
+    openssl rand -hex 16 > "$API_SECRET_FILE" 2>/dev/null
+  else
+    tr -dc A-Za-z0-9 </dev/urandom | head -c 32 > "$API_SECRET_FILE" 2>/dev/null || cat /proc/sys/kernel/random/uuid | tr -d - > "$API_SECRET_FILE" 2>/dev/null
+  fi
+  chmod 600 "$API_SECRET_FILE"
+fi
+API_SECRET=$(cat "$API_SECRET_FILE" 2>/dev/null)
+uci set nikki.mixin.api_secret="$API_SECRET" 2>/dev/null
 uci commit nikki 2>/dev/null
 ok "UCI configured"
 
@@ -259,7 +271,7 @@ echo ""
 
 # ── VERIFY ──────────────────────────────────────
 echo -n "  API: "
-if curl -s --max-time 2 -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/proxies >/dev/null 2>&1; then
+if curl -s --max-time 2 -H "Authorization: Bearer $API_SECRET" http://127.0.0.1:9090/proxies >/dev/null 2>&1; then
   ok "API active (port 9090)"
 else
   fail "API not responding"
@@ -274,7 +286,7 @@ fi
 
 echo -n "  Proxies: "
 # Use proxies API to count PROXY-FREE members
-proxy_count=$(curl -s -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/proxies/PROXY-FREE 2>/dev/null | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('all',[])))" 2>/dev/null || echo "0")
+proxy_count=$(curl -s -H "Authorization: Bearer $API_SECRET" http://127.0.0.1:9090/proxies/PROXY-FREE 2>/dev/null | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('all',[])))" 2>/dev/null || echo "0")
 if [ "$proxy_count" -gt 0 ]; then
   ok "$proxy_count proxies loaded"
 else
@@ -282,11 +294,11 @@ else
 fi
 
 # Get proxy count for summary
-proxy_count=$(curl -s -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/proxies/PROXY-FREE 2>/dev/null | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('all',[])))" 2>/dev/null || echo "0")
+proxy_count=$(curl -s -H "Authorization: Bearer $API_SECRET" http://127.0.0.1:9090/proxies/PROXY-FREE 2>/dev/null | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('all',[])))" 2>/dev/null || echo "0")
 
 echo -n "  WARP: "
 # Check WARP via proxy group
-warp_loaded=$(curl -s -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/proxies/WARP-LB 2>/dev/null | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('all',[])))" 2>/dev/null || echo "0")
+warp_loaded=$(curl -s -H "Authorization: Bearer $API_SECRET" http://127.0.0.1:9090/proxies/WARP-LB 2>/dev/null | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('all',[])))" 2>/dev/null || echo "0")
 if [ "$warp_loaded" -gt 0 ]; then
   ok "$warp_loaded WARP proxies loaded"
 else
@@ -294,7 +306,7 @@ else
 fi
 
 # Get WARP count for summary
-warp_loaded=$(curl -s -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/proxies/WARP-LB 2>/dev/null | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('all',[])))" 2>/dev/null || echo "0")
+warp_loaded=$(curl -s -H "Authorization: Bearer $API_SECRET" http://127.0.0.1:9090/proxies/WARP-LB 2>/dev/null | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('all',[])))" 2>/dev/null || echo "0")
 
 echo ""
 echo "${B}╔══════════════════════════════════════════════════╗${N}"
@@ -312,7 +324,7 @@ fi
 echo ""
 echo "  ${W}Proxy Groups:${N}"
 # Show all proxy groups
-curl -s -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/proxies 2>/dev/null | python3 -c "
+curl -s -H "Authorization: Bearer $API_SECRET" http://127.0.0.1:9090/proxies 2>/dev/null | python3 -c "
 import json,sys
 d=json.load(sys.stdin)
 for n,i in d.get('proxies',{}).items():

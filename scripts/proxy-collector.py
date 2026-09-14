@@ -24,7 +24,7 @@ GITHUB_RAW    = "https://raw.githubusercontent.com/rickicode/free-proxy-gateway/
 GW_CFG        = "/opt/gateway-config.json"
 STATE_FILE    = "/opt/.proxy-collector-state.json"   # track last update timestamp
 LOG_FILE      = "/opt/proxy-collector-last-run.json"  # public-readable last run info
-CLASH_SECRET  = "hijinet"
+CLASH_SECRET  = ""
 PROXY_AWARE_SELECTORS = {"GLOBAL", "GOOGLE", "OPENAI", "IPCHECK", "PORT-1010", "PORT-1011", "PORT-1012"}
 MANAGED_SELECTORS = PROXY_AWARE_SELECTORS | {"WAN"}
 

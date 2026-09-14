@@ -9,6 +9,8 @@ import re
 import sys
 from collections import defaultdict
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from lib.common import is_public_target
 
 
 def cc_to_flag(cc: str) -> str:
@@ -40,6 +42,8 @@ def convert_outbound(ob: dict) -> dict | None:
     server = ob.get("server", "")
     port = ob.get("server_port", 0)
     if not server or not port:
+        return None
+    if not is_public_target(server, port):
         return None
 
     if t == "trojan":

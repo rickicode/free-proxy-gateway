@@ -1,5 +1,7 @@
 # singbox-vpn config example
 # Copy to /etc/singbox-vpn/config.yaml and adjust as needed
+# NOTE: clash secrets are auto-generated on first run (0600).
+# Leave empty here; do NOT commit real secrets.
 
 warp:
   interfaces:
@@ -13,7 +15,7 @@ warp:
 proxy:
   github_raw: https://raw.githubusercontent.com/rickicode/free-proxy-singbox/main/output/live-proxies.json
   max_free: 40
-  clash_secret: hijinet
+  clash_secret: ""  # auto-generated
   target_countries:
   - US
   - SG
@@ -56,7 +58,7 @@ singbox:
   - 1011
   - 1012
   clash_api_port: 9090
-  clash_api_secret: hijinet
+  clash_api_secret: ""  # auto-generated
   clash_api_ui: /etc/sing-box/ui
   dns_server: 1.1.1.1
   exclude_from_tun:

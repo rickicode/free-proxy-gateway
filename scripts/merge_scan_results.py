@@ -7,7 +7,7 @@ from pathlib import Path
 
 # Import shared constants and functions from lib.common
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from lib.common import DEFAULT_GROUPS, build_groups, build_singbox_snapshot
+from lib.common import DEFAULT_GROUPS, build_groups, build_singbox_snapshot, is_public_target
 
 
 def parse_args():
@@ -28,6 +28,9 @@ def dedupe_proxies(payloads):
     deduped = {}
     for payload in payloads:
         for proxy in payload.get("proxies", []):
+            ob = proxy.get("outbound", {})
+            if not is_public_target(ob.get("server", ""), ob.get("server_port", 0)):
+                continue
             key = (
                 proxy["protocol"],
                 proxy["server"],

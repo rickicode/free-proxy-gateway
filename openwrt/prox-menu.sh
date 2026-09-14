@@ -4,6 +4,7 @@
 # Install: ash installer.sh (auto-installs to /usr/bin/prox-menu)
 
 REPO="https://raw.githubusercontent.com/rickicode/free-proxy-gateway/refs/heads/main"
+_api_secret() { cat /etc/nikki/api_secret 2>/dev/null || uci get nikki.mixin.api_secret 2>/dev/null || echo ""; }
 
 # Colors (busybox ash compatible)
 ESC=$(printf '\33')
@@ -46,7 +47,7 @@ show_status() {
   else
     echo "  ${R}✗ Mihomo not running${N}"
   fi
-  if curl -s --max-time 2 -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/proxies >/dev/null 2>&1; then
+  if curl -s --max-time 2 -H "Authorization: Bearer $(_api_secret)" http://127.0.0.1:9090/proxies >/dev/null 2>&1; then
     echo "  ${G}✓ API active${N} (port 9090)"
   else
     echo "  ${R}✗ API not responding${N}"
@@ -85,21 +86,21 @@ run_doctor() {
   pgrep -x mihomo >/dev/null 2>&1 && echo "${G}✓${N}" || { echo "${R}✗${N}"; issues=$((issues+1)); }
 
   echo -n "  API responding: "
-  curl -s --max-time 2 -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/proxies >/dev/null 2>&1 && echo "${G}✓${N}" || { echo "${R}✗${N}"; issues=$((issues+1)); }
+  curl -s --max-time 2 -H "Authorization: Bearer $(_api_secret)" http://127.0.0.1:9090/proxies >/dev/null 2>&1 && echo "${G}✓${N}" || { echo "${R}✗${N}"; issues=$((issues+1)); }
 
   echo -n "  Proxy providers: "
-  free_count=$(curl -s -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/providers/proxies 2>/dev/null | python3 -c "import json,sys; d=json.loads(json.load(sys.stdin)['out-data']); print(len(d.get('providers',{}).get('free',{}).get('proxies',[])))" 2>/dev/null || echo "0")
+  free_count=$(curl -s -H "Authorization: Bearer $(_api_secret)" http://127.0.0.1:9090/providers/proxies 2>/dev/null | python3 -c "import json,sys; d=json.loads(json.load(sys.stdin)['out-data']); print(len(d.get('providers',{}).get('free',{}).get('proxies',[])))" 2>/dev/null || echo "0")
   [ "$free_count" -gt 0 ] && echo "${G}✓ ($free_count proxies)${N}" || { echo "${R}✗${N}"; issues=$((issues+1)); }
 
   echo -n "  WARP proxies: "
-  warp_count=$(curl -s -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/providers/proxies 2>/dev/null | python3 -c "import json,sys; d=json.loads(json.load(sys.stdin)['out-data']); print(len(d.get('providers',{}).get('warp',{}).get('proxies',[])))" 2>/dev/null || echo "0")
+  warp_count=$(curl -s -H "Authorization: Bearer $(_api_secret)" http://127.0.0.1:9090/providers/proxies 2>/dev/null | python3 -c "import json,sys; d=json.loads(json.load(sys.stdin)['out-data']); print(len(d.get('providers',{}).get('warp',{}).get('proxies',[])))" 2>/dev/null || echo "0")
   [ "$warp_count" -gt 0 ] && echo "${G}✓ ($warp_count proxies)${N}" || echo "${Y}⚠ WARP tidak ter-load${N}"
 
   echo -n "  WAN1 connectivity: "
   curl -s --max-time 3 http://www.gstatic.com/generate_204 -o /dev/null 2>&1 && echo "${G}✓${N}" || { echo "${R}✗${N}"; issues=$((issues+1)); }
 
   echo -n "  Rules loaded: "
-  rule_count=$(curl -s -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/rules 2>/dev/null | python3 -c "import json,sys; d=json.loads(json.load(sys.stdin)['out-data']); print(len(d.get('rules',[])))" 2>/dev/null || echo "0")
+  rule_count=$(curl -s -H "Authorization: Bearer $(_api_secret)" http://127.0.0.1:9090/rules 2>/dev/null | python3 -c "import json,sys; d=json.loads(json.load(sys.stdin)['out-data']); print(len(d.get('rules',[])))" 2>/dev/null || echo "0")
   [ "$rule_count" -gt 0 ] && echo "${G}✓ ($rule_count rules)${N}" || { echo "${R}✗${N}"; issues=$((issues+1)); }
 
   echo -n "  Cron jobs: "
@@ -120,7 +121,7 @@ show_groups() {
   echo "${W}═══ PROXY GROUPS ═══${N}"
   echo ""
 
-  curl -s -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/proxies 2>/dev/null | python3 -c "
+  curl -s -H "Authorization: Bearer $(_api_secret)" http://127.0.0.1:9090/proxies 2>/dev/null | python3 -c "
 import json,sys
 d=json.loads(json.load(sys.stdin)['out-data'])
 for n,i in d.get('proxies',{}).items():
@@ -196,7 +197,7 @@ manage_warp() {
   echo "${W}═══ WARP ═══${N}"
   echo ""
 
-  warp_count=$(curl -s -H "Authorization: Bearer hijinet" http://127.0.0.1:9090/providers/proxies 2>/dev/null | python3 -c "import json,sys; d=json.loads(json.load(sys.stdin)['out-data']); print(len(d.get('providers',{}).get('warp',{}).get('proxies',[])))" 2>/dev/null || echo "0")
+  warp_count=$(curl -s -H "Authorization: Bearer $(_api_secret)" http://127.0.0.1:9090/providers/proxies 2>/dev/null | python3 -c "import json,sys; d=json.loads(json.load(sys.stdin)['out-data']); print(len(d.get('providers',{}).get('warp',{}).get('proxies',[])))" 2>/dev/null || echo "0")
   echo "  WARP proxies: $warp_count"
   [ -f /etc/nikki/warp-creds.json ] && echo "  ${G}✓${N} warp-creds.json exists" || echo "  ${Y}⚠${N} warp-creds.json tidak ada"
   echo ""

@@ -83,7 +83,7 @@ DEFAULT_IP_CHECK_URLS = (
     "https://icanhazip.com",
 )
 # Import shared constants and functions from lib.common
-from lib.common import DEFAULT_GROUPS, build_groups, build_singbox_snapshot
+from lib.common import DEFAULT_GROUPS, build_groups, build_singbox_snapshot, is_public_target
 
 
 def parse_args():
@@ -349,15 +349,21 @@ def parse_ss(line, index):
 
 def parse_line(line, index):
     try:
+        parsed = None
         if line.startswith("trojan://"):
-            return parse_trojan(line, index)
-        if line.startswith("vless://"):
-            return parse_vless(line, index)
-        if line.startswith("vmess://"):
-            return parse_vmess(line, index)
-        if line.startswith("ss://"):
-            return parse_ss(line, index)
-        return None
+            parsed = parse_trojan(line, index)
+        elif line.startswith("vless://"):
+            parsed = parse_vless(line, index)
+        elif line.startswith("vmess://"):
+            parsed = parse_vmess(line, index)
+        elif line.startswith("ss://"):
+            parsed = parse_ss(line, index)
+        if not parsed:
+            return None
+        ob = parsed.get("outbound", {})
+        if not is_public_target(ob.get("server", ""), ob.get("server_port", 0)):
+            return None
+        return parsed
     except Exception:
         return None
 

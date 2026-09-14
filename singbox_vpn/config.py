@@ -1,8 +1,13 @@
 """Config loading, saving, defaults — matches exact server setup."""
 
+import secrets
 import yaml
 from pathlib import Path
 from .utils import CONFIG_DIR, CONFIG_FILE, ensure_dir, info, warn
+
+
+def _generate_secret() -> str:
+    return secrets.token_hex(16)
 
 # ── Default config (matches 192.168.90.78 exactly) ───────────────────
 DEFAULT_CONFIG = {
@@ -16,7 +21,7 @@ DEFAULT_CONFIG = {
     "proxy": {
         "github_raw": "https://raw.githubusercontent.com/rickicode/free-proxy-gateway/main/output/live-proxies.json",
         "max_free": 40,
-        "clash_secret": "hijinet",
+        "clash_secret": "",
         "target_countries": ["US", "SG", "ID", "JP", "KR", "HK", "DE", "FR", "GB", "CA", "AU", "IN", "NL", "BR"],
         "proxy_aware_selectors": ["GLOBAL", "GOOGLE", "OPENAI", "IPCHECK", "PORT-1010", "PORT-1011", "PORT-1012"],
     },
@@ -36,7 +41,7 @@ DEFAULT_CONFIG = {
         "mixed_port": 7890,
         "extra_mixed_ports": [1010, 1011, 1012],
         "clash_api_port": 9090,
-        "clash_api_secret": "hijinet",
+        "clash_api_secret": "",
         "clash_api_ui": "/etc/sing-box/ui",
         "dns_server": "1.1.1.1",
         "wan_interfaces": [],       # auto-detected, e.g. ["eth0", "eth1"]
@@ -91,12 +96,38 @@ DEFAULT_CONFIG = {
 
 
 def load_config() -> dict:
-    """Load config from file, merge with defaults."""
+    """Load config from file, merge with defaults. Auto-generates secrets if missing."""
     if not CONFIG_FILE.exists():
-        return _deep_copy_dict(DEFAULT_CONFIG)
+        cfg = _deep_copy_dict(DEFAULT_CONFIG)
+        secret = _generate_secret()
+        cfg["proxy"]["clash_secret"] = secret
+        cfg["singbox"]["clash_api_secret"] = secret
+        try:
+            save_config(cfg)
+            CONFIG_FILE.chmod(0o600)
+        except OSError:
+            pass  # read-only env / non-root: keep in-memory secret
+        return cfg
     with open(CONFIG_FILE) as f:
         user = yaml.safe_load(f) or {}
-    return _deep_merge(DEFAULT_CONFIG, user)
+    cfg = _deep_merge(DEFAULT_CONFIG, user)
+    # migrate empty legacy secrets
+    if not cfg.get("proxy", {}).get("clash_secret"):
+        secret = cfg.get("singbox", {}).get("clash_api_secret") or _generate_secret()
+        cfg["proxy"]["clash_secret"] = secret
+        cfg["singbox"]["clash_api_secret"] = secret
+        try:
+            save_config(cfg)
+            CONFIG_FILE.chmod(0o600)
+        except OSError:
+            pass
+    elif not cfg.get("singbox", {}).get("clash_api_secret"):
+        cfg["singbox"]["clash_api_secret"] = cfg["proxy"]["clash_secret"]
+        try:
+            save_config(cfg)
+        except OSError:
+            pass
+    return cfg
 
 
 def save_config(cfg: dict):
