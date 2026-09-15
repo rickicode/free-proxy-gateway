@@ -99,6 +99,38 @@ jobs:
           Path("output/live-proxies.singbox.json").write_text(json.dumps(data.get("singbox", {}), indent=2))
           PY
 
+      - name: Generate mobile-proxy sing-box config (50KB, zero-python HP)
+        run: |
+          python3 - <<'PY'
+          import json, sys
+          from pathlib import Path
+          tpl = {
+            "log": {"level": "info", "output": "/data/adb/mobile_proxy_tailscale/logs/singbox.log", "timestamp": True},
+            "dns": {"servers": [{"type": "udp", "tag": "dns-direct", "server": "1.1.1.1"}, {"type": "udp", "tag": "dns-direct2", "server": "8.8.8.8"}], "strategy": "prefer_ipv4"},
+            "experimental": {"clash_api": {"external_controller": "0.0.0.0:9090", "external_ui": "/data/adb/modules/mobile_proxy_tailscale/dashboard", "secret": "singbox", "default_mode": "rule"}},
+            "inbounds": [
+              {"type": "http", "tag": "proxy-1080", "listen": "0.0.0.0", "listen_port": 1080, "domain_resolver": "dns-direct"},
+              {"type": "mixed", "tag": "mixed-1011", "listen": "0.0.0.0", "listen_port": 1011, "domain_resolver": "dns-direct"},
+              {"type": "mixed", "tag": "mixed-1012", "listen": "0.0.0.0", "listen_port": 1012, "domain_resolver": "dns-direct"},
+              {"type": "mixed", "tag": "mixed-1013", "listen": "0.0.0.0", "listen_port": 1013, "domain_resolver": "dns-direct"},
+              {"type": "mixed", "tag": "mixed-1014", "listen": "0.0.0.0", "listen_port": 1014, "domain_resolver": "dns-direct"}
+            ],
+            "outbounds": [{"type": "direct", "tag": "DIRECT", "domain_resolver": "dns-direct"}],
+            "route": {"rules": [
+              {"inbound": ["proxy-1080"], "outbound": "DIRECT"},
+              {"inbound": ["mixed-1011"], "outbound": "PROXY-FREE"},
+              {"inbound": ["mixed-1012"], "outbound": "PROXY-AMERICA"},
+              {"inbound": ["mixed-1013"], "outbound": "PROXY-ASIA"},
+              {"inbound": ["mixed-1014"], "outbound": "PROXY-EUROPE"}
+            ], "auto_detect_interface": False}
+          }
+          tpl_path = Path("/tmp/mproxy_tpl.json")
+          tpl_path.write_text(json.dumps(tpl))
+          PY
+          python3 scripts/update_config_hp.py /tmp/mproxy_tpl.json output/live-proxies.json
+          cp /tmp/mproxy_tpl.json output/mobile-proxy-singbox.json
+          echo "mobile-proxy-singbox.json: $(wc -c < output/mobile-proxy-singbox.json) bytes"
+
       - name: Generate mihomo (Clash Meta) output
         run: |
           python3 scripts/convert_to_mihomo.py \
