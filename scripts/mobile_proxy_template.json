@@ -1,0 +1,109 @@
+{
+  "log": {
+    "level": "info",
+    "output": "/data/adb/mobile_proxy_tailscale/logs/singbox.log",
+    "timestamp": true
+  },
+  "dns": {
+    "servers": [
+      {
+        "type": "udp",
+        "tag": "dns-direct",
+        "server": "1.1.1.1"
+      },
+      {
+        "type": "udp",
+        "tag": "dns-direct2",
+        "server": "8.8.8.8"
+      }
+    ],
+    "strategy": "prefer_ipv4"
+  },
+  "experimental": {
+    "clash_api": {
+      "external_controller": "0.0.0.0:9090",
+      "external_ui": "/data/adb/modules/mobile_proxy_tailscale/dashboard",
+      "secret": "singbox",
+      "default_mode": "rule"
+    }
+  },
+  "inbounds": [
+    {
+      "type": "http",
+      "tag": "proxy-1080",
+      "listen": "0.0.0.0",
+      "listen_port": 1080,
+      "domain_resolver": "dns-direct"
+    },
+    {
+      "type": "mixed",
+      "tag": "mixed-1011",
+      "listen": "0.0.0.0",
+      "listen_port": 1011,
+      "domain_resolver": "dns-direct"
+    },
+    {
+      "type": "mixed",
+      "tag": "mixed-1012",
+      "listen": "0.0.0.0",
+      "listen_port": 1012,
+      "domain_resolver": "dns-direct"
+    },
+    {
+      "type": "mixed",
+      "tag": "mixed-1013",
+      "listen": "0.0.0.0",
+      "listen_port": 1013,
+      "domain_resolver": "dns-direct"
+    },
+    {
+      "type": "mixed",
+      "tag": "mixed-1014",
+      "listen": "0.0.0.0",
+      "listen_port": 1014,
+      "domain_resolver": "dns-direct"
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "direct",
+      "tag": "DIRECT",
+      "domain_resolver": "dns-direct"
+    }
+  ],
+  "route": {
+    "rules": [
+      {
+        "inbound": [
+          "proxy-1080"
+        ],
+        "outbound": "DIRECT"
+      },
+      {
+        "inbound": [
+          "mixed-1011"
+        ],
+        "outbound": "PROXY-FREE"
+      },
+      {
+        "inbound": [
+          "mixed-1012"
+        ],
+        "outbound": "PROXY-AMERICA"
+      },
+      {
+        "inbound": [
+          "mixed-1013"
+        ],
+        "outbound": "PROXY-ASIA"
+      },
+      {
+        "inbound": [
+          "mixed-1014"
+        ],
+        "outbound": "PROXY-EUROPE"
+      }
+    ],
+    "auto_detect_interface": false
+  }
+}

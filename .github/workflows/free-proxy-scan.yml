@@ -7,6 +7,9 @@ on:
       - "freeproxy.py"
       - "scripts/merge_scan_results.py"
       - "scripts/convert_to_mihomo.py"
+      - "scripts/generate_mobile_proxy.py"
+      - "scripts/update_config_hp.py"
+      - "scripts/mobile_proxy_template.json"
       - ".github/workflows/free-proxy-scan.yml"
   workflow_dispatch:
   schedule:
@@ -99,37 +102,17 @@ jobs:
           Path("output/live-proxies.singbox.json").write_text(json.dumps(data.get("singbox", {}), indent=2))
           PY
 
-      - name: Generate mobile-proxy sing-box config (50KB, zero-python HP)
+      - name: Generate mobile-proxy sing-box config (optimized for HP)
         run: |
-          python3 - <<'PY'
-          import json, sys
-          from pathlib import Path
-          tpl = {
-            "log": {"level": "info", "output": "/data/adb/mobile_proxy_tailscale/logs/singbox.log", "timestamp": True},
-            "dns": {"servers": [{"type": "udp", "tag": "dns-direct", "server": "1.1.1.1"}, {"type": "udp", "tag": "dns-direct2", "server": "8.8.8.8"}], "strategy": "prefer_ipv4"},
-            "experimental": {"clash_api": {"external_controller": "0.0.0.0:9090", "external_ui": "/data/adb/modules/mobile_proxy_tailscale/dashboard", "secret": "singbox", "default_mode": "rule"}},
-            "inbounds": [
-              {"type": "http", "tag": "proxy-1080", "listen": "0.0.0.0", "listen_port": 1080, "domain_resolver": "dns-direct"},
-              {"type": "mixed", "tag": "mixed-1011", "listen": "0.0.0.0", "listen_port": 1011, "domain_resolver": "dns-direct"},
-              {"type": "mixed", "tag": "mixed-1012", "listen": "0.0.0.0", "listen_port": 1012, "domain_resolver": "dns-direct"},
-              {"type": "mixed", "tag": "mixed-1013", "listen": "0.0.0.0", "listen_port": 1013, "domain_resolver": "dns-direct"},
-              {"type": "mixed", "tag": "mixed-1014", "listen": "0.0.0.0", "listen_port": 1014, "domain_resolver": "dns-direct"}
-            ],
-            "outbounds": [{"type": "direct", "tag": "DIRECT", "domain_resolver": "dns-direct"}],
-            "route": {"rules": [
-              {"inbound": ["proxy-1080"], "outbound": "DIRECT"},
-              {"inbound": ["mixed-1011"], "outbound": "PROXY-FREE"},
-              {"inbound": ["mixed-1012"], "outbound": "PROXY-AMERICA"},
-              {"inbound": ["mixed-1013"], "outbound": "PROXY-ASIA"},
-              {"inbound": ["mixed-1014"], "outbound": "PROXY-EUROPE"}
-            ], "auto_detect_interface": False}
-          }
-          tpl_path = Path("/tmp/mproxy_tpl.json")
-          tpl_path.write_text(json.dumps(tpl))
-          PY
-          python3 scripts/update_config_hp.py /tmp/mproxy_tpl.json output/live-proxies.json
-          cp /tmp/mproxy_tpl.json output/mobile-proxy-singbox.json
-          echo "mobile-proxy-singbox.json: $(wc -c < output/mobile-proxy-singbox.json) bytes"
+          # Minified JSON untuk efisien bandwidth di HP mobile data (~50% lebih kecil)
+          python3 scripts/generate_mobile_proxy.py \
+            --input output/live-proxies.json \
+            --template scripts/mobile_proxy_template.json \
+            --output output/mobile-proxy-singbox.json
+          echo "--- size check ---"
+          ls -lh output/mobile-proxy-singbox.json
+          echo "--- sanity check: 5 inbounds, PROXY-* groups exist ---"
+          python3 -c "import json;d=json.load(open('output/mobile-proxy-singbox.json'));assert len(d.get('inbounds',[]))==5,'inbounds!=5';assert any(o.get('tag')=='PROXY-FREE' for o in d['outbounds']),'no PROXY-FREE';print('OK:',len(d['outbounds']),'outbounds')"
 
       - name: Generate mihomo (Clash Meta) output
         run: |
