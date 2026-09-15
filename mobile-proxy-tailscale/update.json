@@ -1,0 +1,6 @@
+{
+  "version": "v3.1.0",
+  "versionCode": 310,
+  "zipUrl": "https://github.com/rickicode/free-proxy-singbox/releases/download/v3.1.0/mobile_proxy_tailscale-v3.1.0.zip",
+  "changelog": "v3.1.0: Zero-python HP (50KB mobile-proxy-singbox.json dari CI, shell+jq/sed inject, offline bundle 120 proxy), fetch 3-mirror, customize init offline"
+}
