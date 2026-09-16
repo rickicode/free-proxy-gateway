@@ -1,6 +1,6 @@
 {
-  "version": "v3.1.0",
-  "versionCode": 310,
-  "zipUrl": "https://github.com/rickicode/free-proxy-singbox/releases/download/v3.1.0/mobile_proxy_tailscale-v3.1.0.zip",
-  "changelog": "v3.1.0: Zero-python HP (50KB mobile-proxy-singbox.json dari CI, shell+jq/sed inject, offline bundle 120 proxy), fetch 3-mirror, customize init offline"
+  "version": "v3.1.1",
+  "versionCode": 311,
+  "zipUrl": "https://github.com/rickicode/free-proxy-singbox/releases/download/v3.1.1/mobile_proxy_tailscale-v3.1.1.zip",
+  "changelog": "v3.1.1: Per-port selectors (PORT-1080..PORT-1014 switchable DIRECT vs PROXY-* via Yacd), GLOBAL includes DIRECT, optimized 36KB minified config"
 }

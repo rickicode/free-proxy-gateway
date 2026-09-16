@@ -52,11 +52,11 @@ DEFAULT_TEMPLATE = {
     ],
     "route": {
         "rules": [
-            {"inbound": ["proxy-1080"], "outbound": "DIRECT"},
-            {"inbound": ["mixed-1011"], "outbound": "PROXY-FREE"},
-            {"inbound": ["mixed-1012"], "outbound": "PROXY-AMERICA"},
-            {"inbound": ["mixed-1013"], "outbound": "PROXY-ASIA"},
-            {"inbound": ["mixed-1014"], "outbound": "PROXY-EUROPE"}
+            {"inbound": ["proxy-1080"], "outbound": "PORT-1080"},
+            {"inbound": ["mixed-1011"], "outbound": "PORT-1011"},
+            {"inbound": ["mixed-1012"], "outbound": "PORT-1012"},
+            {"inbound": ["mixed-1013"], "outbound": "PORT-1013"},
+            {"inbound": ["mixed-1014"], "outbound": "PORT-1014"}
         ],
         "auto_detect_interface": False
     }
@@ -223,7 +223,26 @@ def build_mobile_config(proxies_data, template=None, minified=True):
         cfg["outbounds"].append({
             "type": "selector",
             "tag": "GLOBAL",
-            "outbounds": all_group_tags
+            "outbounds": ["DIRECT"] + all_group_tags
+        })
+
+    # Per-port selector: tiap port bisa pilih DIRECT atau region mana pun via Yacd
+    port_map = {
+        "PORT-1080": ["DIRECT", "PROXY-FREE", "PROXY-AMERICA", "PROXY-ASIA", "PROXY-EUROPE", "GLOBAL"],
+        "PORT-1011": ["PROXY-FREE", "DIRECT", "PROXY-AMERICA", "PROXY-ASIA", "PROXY-EUROPE", "GLOBAL"],
+        "PORT-1012": ["PROXY-AMERICA", "DIRECT", "PROXY-FREE", "PROXY-ASIA", "PROXY-EUROPE", "GLOBAL"],
+        "PORT-1013": ["PROXY-ASIA", "DIRECT", "PROXY-FREE", "PROXY-AMERICA", "PROXY-EUROPE", "GLOBAL"],
+        "PORT-1014": ["PROXY-EUROPE", "DIRECT", "PROXY-FREE", "PROXY-AMERICA", "PROXY-ASIA", "GLOBAL"],
+    }
+    existing = set(o["tag"] for o in cfg["outbounds"])
+    for port_tag, candidates in port_map.items():
+        filtered = [t for t in candidates if t in existing]
+        if "DIRECT" not in filtered:
+            filtered = ["DIRECT"] + filtered
+        cfg["outbounds"].append({
+            "type": "selector",
+            "tag": port_tag,
+            "outbounds": filtered
         })
 
     return cfg

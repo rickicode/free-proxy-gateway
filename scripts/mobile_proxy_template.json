@@ -77,31 +77,31 @@
         "inbound": [
           "proxy-1080"
         ],
-        "outbound": "DIRECT"
+        "outbound": "PORT-1080"
       },
       {
         "inbound": [
           "mixed-1011"
         ],
-        "outbound": "PROXY-FREE"
+        "outbound": "PORT-1011"
       },
       {
         "inbound": [
           "mixed-1012"
         ],
-        "outbound": "PROXY-AMERICA"
+        "outbound": "PORT-1012"
       },
       {
         "inbound": [
           "mixed-1013"
         ],
-        "outbound": "PROXY-ASIA"
+        "outbound": "PORT-1013"
       },
       {
         "inbound": [
           "mixed-1014"
         ],
-        "outbound": "PROXY-EUROPE"
+        "outbound": "PORT-1014"
       }
     ],
     "auto_detect_interface": false
